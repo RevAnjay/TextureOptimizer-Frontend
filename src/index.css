@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-900: #064e3b;
+  
+  --color-dark-bg: #000000;
+  --color-dark-surface: #0A0A0A;
+  --color-dark-surface2: #111111;
+  --color-dark-border: #222222;
+  --color-dark-borderHover: #333333;
+  
+  --animate-pulse-glow: pulse-glow 2s infinite;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dark-bg text-slate-300 font-sans antialiased min-h-screen overflow-x-hidden selection:bg-brand-500/30;
+  }
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-dark-border rounded-full hover:bg-dark-borderHover transition-colors;
+}
+
+/* Custom Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px 2px rgba(20, 184, 166, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 25px 8px rgba(20, 184, 166, 0.6);
+  }
+}
