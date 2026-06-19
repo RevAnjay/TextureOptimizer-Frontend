@@ -54,9 +54,9 @@ function App() {
     return (
       <div className="font-sans antialiased min-h-screen bg-dark-bg text-slate-100 flex flex-col items-center justify-center relative overflow-x-hidden">
         {currentPage === 'login' ? (
-          <Login setToken={setToken} setCurrentPage={setCurrentPage} />
+          <Login setToken={setToken} setUser={setUser} navigateTo={setCurrentPage} />
         ) : (
-          <Register setCurrentPage={setCurrentPage} />
+          <Register navigateTo={setCurrentPage} />
         )}
       </div>
     );
