@@ -4,18 +4,21 @@ import Register from './pages/Register'
 import Admin from './pages/Admin'
 import Scanner from './pages/Scanner'
 import Optimizer from './pages/Optimizer'
+import Queue from './pages/Queue'
 import ProfileModal from './components/ProfileModal'
 import Sidebar from './components/Sidebar'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('login') // 'login', 'register', 'home'
+  const [currentPage, setCurrentPage] = useState('login') // 'login', 'register', 'home', 'queue'
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(localStorage.getItem('token') || null)
   const [showProfile, setShowProfile] = useState(false)
+  const [isAuthLoading, setIsAuthLoading] = useState(!!localStorage.getItem('token'))
   
   // Session Persistence Effect
   useEffect(() => {
     if (token) {
+      setIsAuthLoading(true)
       fetch(`${import.meta.env.VITE_API_URL}/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -25,10 +28,13 @@ function App() {
       })
       .then(data => {
         setUser(data)
-        setCurrentPage(currentPage === 'login' || currentPage === 'register' ? 'home' : currentPage)
+        setCurrentPage(prev => (prev === 'login' || prev === 'register') ? 'home' : prev)
       })
       .catch(() => {
         handleLogout()
+      })
+      .finally(() => {
+        setIsAuthLoading(false)
       })
     }
   }, [token])
@@ -48,6 +54,24 @@ function App() {
     setCurrentPage('login');
     setShowProfile(false);
   };
+
+  // Show loading splash while checking auth — prevents login page flash
+  if (isAuthLoading) {
+    return (
+      <div className="font-sans antialiased min-h-screen bg-dark-bg text-slate-100 flex flex-col items-center justify-center">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Convert<span className="text-brand-500">Texture</span></h1>
+        </div>
+        <div className="relative w-8 h-8">
+          <div className="absolute inset-0 border-2 border-dark-border rounded-full"></div>
+          <div className="absolute inset-0 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
 
   // Jika belum login, tampilkan halaman auth full screen
   if (!user || currentPage === 'login' || currentPage === 'register') {
@@ -84,6 +108,8 @@ function App() {
             <Admin token={token} navigateTo={setCurrentPage} />
           ) : currentPage === 'scanner' ? (
             <Scanner token={token} />
+          ) : currentPage === 'queue' ? (
+            <Queue token={token} />
           ) : (
             <Optimizer token={token} user={user} />
           )}

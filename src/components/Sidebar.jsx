@@ -27,6 +27,14 @@ const Sidebar = ({ currentPage, setCurrentPage, user, setShowProfile }) => {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             Scan & Analyze
           </button>
+
+          <button
+            onClick={() => setCurrentPage('queue')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${currentPage === 'queue' ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            Queue Monitor
+          </button>
           
           {user?.is_admin && (
             <button 
