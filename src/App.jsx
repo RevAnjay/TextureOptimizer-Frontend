@@ -6,7 +6,8 @@ import Scanner from './pages/Scanner'
 import Optimizer from './pages/Optimizer'
 import Queue from './pages/Queue'
 import ProfileModal from './components/ProfileModal'
-import Sidebar from './components/Sidebar'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('login') // 'login', 'register', 'home', 'queue'
@@ -14,6 +15,7 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || null)
   const [showProfile, setShowProfile] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(!!localStorage.getItem('token'))
+  const [resetEmail, setResetEmail] = useState('')
   
   // Session Persistence Effect
   useEffect(() => {
@@ -74,13 +76,17 @@ function App() {
   }
 
   // Jika belum login, tampilkan halaman auth full screen
-  if (!user || currentPage === 'login' || currentPage === 'register') {
+  if (!user || ['login', 'register', 'forgot-password', 'reset-password'].includes(currentPage)) {
     return (
       <div className="font-sans antialiased min-h-screen bg-dark-bg text-slate-100 flex flex-col items-center justify-center relative overflow-x-hidden">
         {currentPage === 'login' ? (
           <Login setToken={setToken} setUser={setUser} navigateTo={setCurrentPage} />
-        ) : (
+        ) : currentPage === 'register' ? (
           <Register navigateTo={setCurrentPage} />
+        ) : currentPage === 'forgot-password' ? (
+          <ForgotPassword navigateTo={setCurrentPage} setResetEmail={setResetEmail} />
+        ) : (
+          <ResetPassword navigateTo={setCurrentPage} resetEmail={resetEmail} />
         )}
       </div>
     );

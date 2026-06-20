@@ -4,23 +4,30 @@ const Queue = ({ token }) => {
   const [tasks, setTasks] = useState({});
   const [expandedTask, setExpandedTask] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const logsEndRefs = useRef({});
+
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/debug`);
+      if (!res.ok) throw new Error(`Server returned status ${res.status}`);
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned invalid content type (non-JSON)');
+      }
+      const data = await res.json();
+      setTasks(data);
+      setError(null);
+    } catch (err) {
+      console.error('Queue polling error:', err);
+      setError(err.message || 'Cannot connect to API server');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Polling /debug every 2 seconds
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/debug`);
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
-        setTasks(data);
-      } catch (err) {
-        console.error('Queue polling error:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchTasks();
     const interval = setInterval(fetchTasks, 2000);
     return () => clearInterval(interval);
@@ -173,19 +180,36 @@ const Queue = ({ token }) => {
               </div>
             ))}
           </div>
+        ) : error ? (
+          /* Error State */
+          <div className="bg-dark-surface border border-dark-border rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
+            <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-center mb-6">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Connection Error</h3>
+            <p className="text-slate-400 text-sm max-w-sm mb-6">
+              {error}. Please verify that the API backend is running.
+            </p>
+            <button 
+              onClick={() => { setIsLoading(true); fetchTasks(); }}
+              className="px-6 py-2.5 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg text-sm transition-colors"
+            >
+              Retry Connection
+            </button>
+          </div>
         ) : sortedTasks.length === 0 ? (
           /* Empty State */
-          <div className="bg-dark-surface border border-dark-border rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
-            <div className="w-20 h-20 bg-dark-surface2 border border-dark-border rounded-2xl flex items-center justify-center mb-6">
-              <svg className="w-10 h-10 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-dark-surface border-2 border-dashed border-dark-border rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
+            <div className="w-16 h-16 bg-dark-surface2 border border-dark-border rounded-2xl flex items-center justify-center mb-6">
+              <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">No Active Tasks</h3>
-            <p className="text-slate-500 text-sm max-w-sm">
+            <h3 className="text-lg font-semibold text-white mb-2">No Active Tasks</h3>
+            <p className="text-slate-400 text-sm max-w-sm">
               The processing queue is currently empty. Tasks will appear here when files are uploaded for optimization or scanning.
             </p>
-            <div className="flex items-center gap-2 mt-6 text-xs text-slate-600">
+            <div className="flex items-center gap-2 mt-6 text-xs text-slate-500">
               <div className="w-1.5 h-1.5 bg-brand-500 rounded-full animate-pulse"></div>
               <span>Auto-refreshing every 2s</span>
             </div>

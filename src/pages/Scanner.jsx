@@ -117,7 +117,7 @@ export default function Scanner({ token }) {
     <div className="w-full flex-1 flex flex-col h-full bg-dark-bg animate-fade-in-up">
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-indigo-400 tracking-tight">Scanner</h2>
+        <h2 className="text-3xl font-bold text-white tracking-tight">Scanner</h2>
         <p className="text-slate-400 mt-2 text-sm max-w-xl leading-relaxed">
           Analyze your texture pack to find giant textures, bloated files, and duplicates before optimizing.
         </p>
@@ -220,10 +220,12 @@ export default function Scanner({ token }) {
         {/* Kolom Kanan: Hasil Scanner */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {!result && status !== 'scanning' ? (
-            <div className="bg-dark-surface border border-dark-border rounded-2xl p-10 flex flex-col items-center justify-center h-full text-center">
-              <svg className="w-16 h-16 text-slate-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-              <h3 className="text-lg font-bold text-slate-400 mb-2">No Data Available</h3>
-              <p className="text-sm text-slate-500 max-w-sm">Upload a texture pack and click Scan to see the insights here.</p>
+            <div className="bg-dark-surface border-2 border-dashed border-dark-border rounded-[2rem] p-10 flex flex-col items-center justify-center h-full min-h-[300px] text-center">
+              <div className="w-16 h-16 bg-dark-surface2 border border-dark-border rounded-2xl flex items-center justify-center mb-6">
+                <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">No Data Available</h3>
+              <p className="text-slate-400 text-sm max-w-sm">Upload a texture pack and click Scan to see the insights here.</p>
             </div>
           ) : status === 'scanning' ? (
             <div className="bg-dark-surface border border-dark-border rounded-2xl p-10 flex flex-col items-center justify-center h-full">

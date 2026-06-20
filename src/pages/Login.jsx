@@ -70,7 +70,16 @@ export default function Login({ setToken, setUser, navigateTo }) {
             </div>
             
             <div>
-              <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">Password</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider">Password</label>
+                <button 
+                  type="button"
+                  onClick={() => navigateTo('forgot-password')} 
+                  className="text-xs text-brand-400 hover:text-brand-300 transition-colors font-medium cursor-pointer"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <input
                 type="password"
                 required

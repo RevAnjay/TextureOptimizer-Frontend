@@ -6,17 +6,25 @@ export default function Admin({ token, navigateTo }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUsers = async () => {
+    setError('');
+    setLoading(true);
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      if (!response.ok) throw new Error('Failed to fetch users');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch users (status ${response.status})`);
+      }
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned invalid content type (non-JSON)');
+      }
       const data = await response.json();
       setUsers(data);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Cannot connect to API server. Ensure backend is running.');
     } finally {
       setLoading(false);
     }
@@ -56,15 +64,26 @@ export default function Admin({ token, navigateTo }) {
           <p className="text-sm text-slate-400 mt-1">Manage user roles and subscription tiers.</p>
         </div>
       </div>
-      
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6 text-sm">
-          {error}
-        </div>
-      )}
 
       {loading ? (
-        <p className="text-center text-slate-500 py-10">Loading users data...</p>
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="w-8 h-8 border-2 border-dark-border border-t-brand-500 rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-500 text-sm">Loading users data...</p>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-center mb-4">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">Connection Error</h3>
+          <p className="text-sm text-slate-400 max-w-sm mb-6">{error}</p>
+          <button 
+            onClick={fetchUsers}
+            className="px-5 py-2.5 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg text-xs transition-colors"
+          >
+            Retry Connection
+          </button>
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-dark-border">
           <table className="w-full text-left border-collapse">
