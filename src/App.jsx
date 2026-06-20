@@ -6,6 +6,7 @@ import Scanner from './pages/Scanner'
 import Optimizer from './pages/Optimizer'
 import Queue from './pages/Queue'
 import ProfileModal from './components/ProfileModal'
+import Sidebar from './components/Sidebar'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 
