@@ -18,6 +18,7 @@ function App() {
   const [showProfile, setShowProfile] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(!!localStorage.getItem('token'))
   const [resetEmail, setResetEmail] = useState('')
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
   // Session Persistence Effect
   useEffect(() => {
@@ -57,6 +58,7 @@ function App() {
     setToken(null);
     setCurrentPage('login');
     setShowProfile(false);
+    setIsMobileMenuOpen(false);
   };
 
   // Show loading splash while checking auth — prevents login page flash
@@ -96,14 +98,50 @@ function App() {
 
   // Jika sudah login, tampilkan layout utama (Dashboard)
   return (
-    <div className="font-sans antialiased h-screen bg-dark-bg text-slate-100 flex overflow-hidden selection:bg-brand-500/30">
+    <div className="font-sans antialiased h-screen bg-dark-bg text-slate-100 flex flex-col md:flex-row overflow-hidden selection:bg-brand-500/30">
       
+      {/* Mobile Top Navigation */}
+      <header className="flex md:hidden items-center justify-between px-6 py-4 bg-dark-surface border-b border-dark-border z-30">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/50 transition-colors focus:outline-none"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center shadow-lg shadow-brand-500/20">
+              <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <span className="text-lg font-bold text-white tracking-tight">Convert<span className="text-brand-500">Texture</span></span>
+          </div>
+        </div>
+        <button 
+          onClick={() => setShowProfile(true)}
+          className="w-10 h-10 bg-brand-900/50 rounded-lg flex items-center justify-center font-bold text-brand-400 border border-dark-border text-sm hover:border-dark-borderHover transition-all"
+        >
+          {user?.username ? user.username.charAt(0).toUpperCase() : '?'}
+        </button>
+      </header>
+
+      {/* Mobile Menu Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar Component */}
       <Sidebar 
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage} 
         user={user} 
         setShowProfile={setShowProfile} 
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
       {/* Main Content Area */}
