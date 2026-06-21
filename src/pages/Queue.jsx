@@ -90,10 +90,13 @@ const Queue = ({ token }) => {
     return `${id.slice(0, 6)}...${id.slice(-4)}`;
   };
 
-  // Sort: processing first, then queued, then uploading, then done, then error
+  // Sort: processing first, then queued, then uploading, then done, then error. Within the same status, sort by created_at desc (newest first).
   const statusOrder = { processing: 0, scanning: 1, queued: 2, uploading: 3, done: 4, error: 5 };
   const sortedTasks = [...taskEntries].sort(([, a], [, b]) => {
-    return (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+    if (a.status !== b.status) {
+      return (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+    }
+    return (b.created_at || 0) - (a.created_at || 0);
   });
 
   return (
