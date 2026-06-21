@@ -4,20 +4,19 @@ const Sidebar = ({ currentPage, setCurrentPage, user, setShowProfile, isMobileMe
   return (
     <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-dark-surface border-r border-dark-border flex flex-col transition-transform duration-300 md:static md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="p-6">
-        <div className="flex items-center justify-between gap-3 mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center shadow-lg shadow-brand-500/20">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            </div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Convert<span className="text-brand-500">Texture</span></h1>
-          </div>
-          {/* Close button on mobile */}
+        <div className="flex items-center gap-3 mb-8">
+          {/* Close button on mobile (placed on the left for better alignment) */}
           <button 
             onClick={() => setIsMobileMenuOpen(false)}
-            className="md:hidden p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/50 transition-colors focus:outline-none"
+            className="md:hidden p-2 -ml-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/50 transition-colors focus:outline-none"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
+          
+          <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center shadow-lg shadow-brand-500/20">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          </div>
+          <h1 className="text-xl font-bold text-white tracking-tight">Convert<span className="text-brand-500">Texture</span></h1>
         </div>
         
         <nav className="space-y-2">
