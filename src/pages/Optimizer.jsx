@@ -10,11 +10,14 @@ const Optimizer = ({ token, user }) => {
     powerOfTwo: false,
     downscale: false,
     minPixel: '1024',
+    tieredResize: false,
     compressPillow: false,
     compressPngquant: true,
     pngquantQuality: '60-90',
     compressOxipng: true,
+    oxipngLevel: '4',
     fullOptimize: true,
+    audioAggressive: false,
     removeShaders: false
   });
 
@@ -27,17 +30,17 @@ const Optimizer = ({ token, user }) => {
     script_default: { 
       name: 'Standard (All-in-One)', 
       desc: 'Recommended optimization: high image compression & OGG audio compression.',
-      opts: { unusedCleaner: true, powerOfTwo: false, downscale: false, compressPillow: false, compressPngquant: true, compressOxipng: true, fullOptimize: true, removeShaders: false }
+      opts: { unusedCleaner: true, powerOfTwo: false, downscale: false, tieredResize: false, compressPillow: false, compressPngquant: true, pngquantQuality: '60-90', compressOxipng: true, oxipngLevel: '4', fullOptimize: true, audioAggressive: false, removeShaders: false }
     },
     safe: {
       name: 'Safe (Lossless)', 
       desc: 'Reduces file size without losing any visual quality.',
-      opts: { unusedCleaner: false, powerOfTwo: false, downscale: false, compressPillow: true, compressPngquant: false, compressOxipng: false, fullOptimize: false, removeShaders: false }
+      opts: { unusedCleaner: false, powerOfTwo: false, downscale: false, tieredResize: false, compressPillow: true, compressPngquant: false, pngquantQuality: '60-90', compressOxipng: false, oxipngLevel: '4', fullOptimize: false, audioAggressive: false, removeShaders: false }
     },
     aggressive: {
       name: 'Aggressive (Max FPS)', 
       desc: 'Downscale resolution, reduce colors, and clean up junk files for maximum performance.',
-      opts: { unusedCleaner: true, powerOfTwo: true, downscale: true, minPixel: '1024', compressPillow: false, compressPngquant: true, pngquantQuality: '40-80', compressOxipng: false, fullOptimize: false, removeShaders: false }
+      opts: { unusedCleaner: true, powerOfTwo: true, downscale: true, minPixel: '1024', tieredResize: true, compressPillow: false, compressPngquant: true, pngquantQuality: '40-80', compressOxipng: false, oxipngLevel: '4', fullOptimize: false, audioAggressive: true, removeShaders: false }
     }
   };
   const [activeTemplate, setActiveTemplate] = useState('script_default');
@@ -366,117 +369,186 @@ const Optimizer = ({ token, user }) => {
             </h3>
             
             <div className="space-y-4">
-              {/* Unused Cleaner */}
-              <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-unused-cleaner">
-                <div className="mt-0.5">
-                  <input type="checkbox" id="opt-unused-cleaner" checked={options.unusedCleaner} onChange={(e) => handleOptionChange('unusedCleaner', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Unused Cleaner</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Remove unreferenced textures</p>
-                </div>
-              </label>
-              
-              {/* Power-of-Two */}
-              <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-power-of-two">
-                <div className="mt-0.5">
-                  <input type="checkbox" id="opt-power-of-two" checked={options.powerOfTwo} onChange={(e) => handleOptionChange('powerOfTwo', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Power-of-Two</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Fix dimensions for OpenGL</p>
-                </div>
-              </label>
-              
-              {/* Downscale */}
-              <div className="flex flex-col gap-2">
-                <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-downscale">
+              {/* Kategori 1: Clean & Structure */}
+              <div className="border border-dark-border bg-dark-bg/20 rounded-xl p-3.5 space-y-3">
+                <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                  <span>🧹</span> Clean & Structure
+                </h4>
+                
+                {/* Unused Cleaner */}
+                <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-unused-cleaner">
                   <div className="mt-0.5">
-                    <input type="checkbox" id="opt-downscale" checked={options.downscale} onChange={(e) => handleOptionChange('downscale', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+                    <input type="checkbox" id="opt-unused-cleaner" checked={options.unusedCleaner} onChange={(e) => handleOptionChange('unusedCleaner', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Downscale Resolution</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Reduce large textures for better FPS</p>
+                    <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Unused Cleaner</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Remove unreferenced textures</p>
                   </div>
                 </label>
-                {options.downscale && (
-                  <div className="ml-7 flex items-center gap-3">
-                    <span className="text-xs text-slate-400">Target px:</span>
-                    <select id="opt-target-px" value={options.minPixel} onChange={(e) => handleOptionChange('minPixel', e.target.value)} className="bg-dark-bg border border-dark-border text-slate-300 text-xs rounded-lg p-1.5 focus:ring-brand-500 focus:border-brand-500 outline-none">
-                      <option value="512">512px</option>
-                      <option value="1024">1024px</option>
-                      <option value="2048">2048px</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              {/* Pillow Compress */}
-              <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-pillow-resize">
-                <div className="mt-0.5">
-                  <input type="checkbox" id="opt-pillow-resize" checked={options.compressPillow} onChange={(e) => handleOptionChange('compressPillow', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Pillow Resize (Fast)</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Basic size reduction via Pillow</p>
-                </div>
-              </label>
-
-              {/* Pngquant */}
-              <div className="flex flex-col gap-2">
-                <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-pngquant">
+                
+                {/* Remove Shaders */}
+                <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-remove-shaders">
                   <div className="mt-0.5">
-                    <input type="checkbox" id="opt-pngquant" checked={options.compressPngquant} onChange={(e) => handleOptionChange('compressPngquant', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+                    <input type="checkbox" id="opt-remove-shaders" checked={options.removeShaders} onChange={(e) => handleOptionChange('removeShaders', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Pngquant Lossy</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Aggressive color reduction</p>
+                    <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Remove Shaders</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Delete shaders folder from the pack</p>
                   </div>
                 </label>
-                {options.compressPngquant && (
-                  <div className="ml-7 flex items-center gap-3">
-                    <span className="text-xs text-slate-400">Quality:</span>
-                    <select id="opt-pngquant-quality" value={options.pngquantQuality} onChange={(e) => handleOptionChange('pngquantQuality', e.target.value)} className="bg-dark-bg border border-dark-border text-slate-300 text-xs rounded-lg p-1.5 focus:ring-brand-500 focus:border-brand-500 outline-none">
-                      <option value="40-80">Low (40-80)</option>
-                      <option value="60-90">Med (60-90)</option>
-                      <option value="80-100">High (80-100)</option>
-                    </select>
-                  </div>
-                )}
               </div>
 
-              {/* OxiPNG */}
-              <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-oxipng">
-                <div className="mt-0.5">
-                  <input type="checkbox" id="opt-oxipng" checked={options.compressOxipng} onChange={(e) => handleOptionChange('compressOxipng', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+              {/* Kategori 2: Scaling & Resolution */}
+              <div className="border border-dark-border bg-dark-bg/20 rounded-xl p-3.5 space-y-3">
+                <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                  <span>📐</span> Scaling & Resolution
+                </h4>
+                
+                {/* Power-of-Two */}
+                <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-power-of-two">
+                  <div className="mt-0.5">
+                    <input type="checkbox" id="opt-power-of-two" checked={options.powerOfTwo} onChange={(e) => handleOptionChange('powerOfTwo', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Power-of-Two</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Fix dimensions for OpenGL</p>
+                  </div>
+                </label>
+                
+                {/* Downscale */}
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-downscale">
+                    <div className="mt-0.5">
+                      <input type="checkbox" id="opt-downscale" checked={options.downscale} onChange={(e) => handleOptionChange('downscale', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Downscale Resolution</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Reduce large textures for better FPS</p>
+                    </div>
+                  </label>
+                  {options.downscale && (
+                    <div className="ml-7 space-y-3 border-l border-dark-border/40 pl-3 mt-1">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-400">Target px:</span>
+                        <select id="opt-target-px" value={options.minPixel} onChange={(e) => handleOptionChange('minPixel', e.target.value)} className="bg-dark-bg border border-dark-border text-slate-300 text-xs rounded-lg p-1.5 focus:ring-brand-500 focus:border-brand-500 outline-none">
+                          <option value="512">512px</option>
+                          <option value="1024">1024px</option>
+                          <option value="2048">2048px</option>
+                        </select>
+                      </div>
+                      <label className="flex items-start gap-2 cursor-pointer group" htmlFor="opt-tiered-resize">
+                        <div className="mt-0.5">
+                          <input type="checkbox" id="opt-tiered-resize" checked={options.tieredResize} onChange={(e) => handleOptionChange('tieredResize', e.target.checked)} className="w-3.5 h-3.5 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-slate-300 group-hover:text-white transition-colors">Tiered Resize</p>
+                          <p className="text-[10px] text-slate-500 leading-normal">Aggressive reduction based on size tiers</p>
+                        </div>
+                      </label>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Oxipng Lossless</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Safe size reduction (no quality loss)</p>
-                </div>
-              </label>
+              </div>
 
-              {/* Full Optimize */}
-              <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-full-optimize">
-                <div className="mt-0.5">
-                  <input type="checkbox" id="opt-full-optimize" checked={options.fullOptimize} onChange={(e) => handleOptionChange('fullOptimize', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Full OptiPNG & OGG</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Deep image & audio compression</p>
-                </div>
-              </label>
+              {/* Kategori 3: Image Optimization */}
+              <div className="border border-dark-border bg-dark-bg/20 rounded-xl p-3.5 space-y-3">
+                <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                  <span>🖼️</span> Image Optimization
+                </h4>
+                
+                {/* Pillow Compress */}
+                <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-pillow-resize">
+                  <div className="mt-0.5">
+                    <input type="checkbox" id="opt-pillow-resize" checked={options.compressPillow} onChange={(e) => handleOptionChange('compressPillow', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Pillow Resize (Fast)</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Basic size reduction via Pillow</p>
+                  </div>
+                </label>
 
-              {/* Remove Shaders */}
-              <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-remove-shaders">
-                <div className="mt-0.5">
-                  <input type="checkbox" id="opt-remove-shaders" checked={options.removeShaders} onChange={(e) => handleOptionChange('removeShaders', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+                {/* Pngquant */}
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-pngquant">
+                    <div className="mt-0.5">
+                      <input type="checkbox" id="opt-pngquant" checked={options.compressPngquant} onChange={(e) => handleOptionChange('compressPngquant', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Pngquant Lossy</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Aggressive color reduction</p>
+                    </div>
+                  </label>
+                  {options.compressPngquant && (
+                    <div className="ml-7 border-l border-dark-border/40 pl-3 flex items-center gap-3">
+                      <span className="text-xs text-slate-400">Quality:</span>
+                      <select id="opt-pngquant-quality" value={options.pngquantQuality} onChange={(e) => handleOptionChange('pngquantQuality', e.target.value)} className="bg-dark-bg border border-dark-border text-slate-300 text-xs rounded-lg p-1.5 focus:ring-brand-500 focus:border-brand-500 outline-none">
+                        <option value="40-80">Low (40-80)</option>
+                        <option value="60-90">Med (60-90)</option>
+                        <option value="80-100">High (80-100)</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Remove Shaders</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Delete shaders folder from the pack</p>
+
+                {/* OxiPNG */}
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-oxipng">
+                    <div className="mt-0.5">
+                      <input type="checkbox" id="opt-oxipng" checked={options.compressOxipng} onChange={(e) => handleOptionChange('compressOxipng', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Oxipng Lossless</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Safe size reduction (no quality loss)</p>
+                    </div>
+                  </label>
+                  {options.compressOxipng && (
+                    <div className="ml-7 border-l border-dark-border/40 pl-3 flex items-center gap-3">
+                      <span className="text-xs text-slate-400">Level:</span>
+                      <select id="opt-oxipng-level" value={options.oxipngLevel} onChange={(e) => handleOptionChange('oxipngLevel', e.target.value)} className="bg-dark-bg border border-dark-border text-slate-300 text-xs rounded-lg p-1.5 focus:ring-brand-500 focus:border-brand-500 outline-none">
+                        <option value="1">1 (Fastest)</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4 (Recommended)</option>
+                        <option value="5">5</option>
+                        <option value="6">6 (Deepest/Slow)</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
-              </label>
+              </div>
+
+              {/* Kategori 4: Audio & Media */}
+              <div className="border border-dark-border bg-dark-bg/20 rounded-xl p-3.5 space-y-3">
+                <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                  <span>🎵</span> Audio & Media
+                </h4>
+                
+                {/* Full Optimize */}
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-full-optimize">
+                    <div className="mt-0.5">
+                      <input type="checkbox" id="opt-full-optimize" checked={options.fullOptimize} onChange={(e) => handleOptionChange('fullOptimize', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Full OptiPNG & OGG</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Deep image & audio compression</p>
+                    </div>
+                  </label>
+                  {options.fullOptimize && (
+                    <div className="ml-7 border-l border-dark-border/40 pl-3 space-y-3 mt-1">
+                      <label className="flex items-start gap-2 cursor-pointer group" htmlFor="opt-audio-aggressive">
+                        <div className="mt-0.5">
+                          <input type="checkbox" id="opt-audio-aggressive" checked={options.audioAggressive} onChange={(e) => handleOptionChange('audioAggressive', e.target.checked)} className="w-3.5 h-3.5 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-slate-300 group-hover:text-white transition-colors">Aggressive Audio</p>
+                          <p className="text-[10px] text-slate-500 leading-normal">Volume normalization & silence clipping</p>
+                        </div>
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

@@ -29,6 +29,14 @@ const Sidebar = ({ currentPage, setCurrentPage, user, setShowProfile }) => {
           </button>
 
           <button
+            onClick={() => setCurrentPage('converter')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${currentPage === 'converter' ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+            Version Converter
+          </button>
+
+          <button
             onClick={() => setCurrentPage('queue')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${currentPage === 'queue' ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}
           >
