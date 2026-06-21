@@ -96,7 +96,7 @@ export default function Register({ navigateTo }) {
               </div>
               <button
                 onClick={() => navigateTo('login')}
-                className="w-full py-3 mt-2 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg transition-colors"
+                className="w-full py-3 mt-2 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all"
               >
                 Continue to Sign In
               </button>
@@ -125,7 +125,7 @@ export default function Register({ navigateTo }) {
               <button
                 type="submit"
                 disabled={loading || otp.length !== 6}
-                className="w-full py-3 mt-2 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg transition-colors disabled:opacity-50"
+                className="w-full py-3 mt-2 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all disabled:opacity-50"
               >
                 {loading ? 'Verifying...' : 'Verify OTP'}
               </button>
@@ -170,7 +170,7 @@ export default function Register({ navigateTo }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 mt-4 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg transition-colors disabled:opacity-50"
+                className="w-full py-3 mt-4 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all disabled:opacity-50"
               >
                 {loading ? 'Processing...' : 'Sign Up'}
               </button>

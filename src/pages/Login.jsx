@@ -93,7 +93,7 @@ export default function Login({ setToken, setUser, navigateTo }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 mt-4 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg transition-colors disabled:opacity-50"
+              className="w-full py-3 mt-4 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all disabled:opacity-50"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>

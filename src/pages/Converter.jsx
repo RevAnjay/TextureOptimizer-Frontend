@@ -194,7 +194,7 @@ export default function Converter({ token, user }) {
               <p className="text-slate-500 text-sm mb-6 text-center max-w-sm">Drag and drop your pack here, or click to browse files.</p>
               
               <input type="file" accept=".zip" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-              <button className="px-6 py-2.5 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg transition-colors text-sm">
+              <button className="px-6 py-2.5 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all text-sm">
                 Browse Files
               </button>
             </div>
@@ -240,7 +240,7 @@ export default function Converter({ token, user }) {
                 <p className="text-xs text-slate-500 mt-2">Format 46 introduces the new `assets/minecraft/items/*.json` format replacing model overrides predicates.</p>
               </div>
 
-              <button onClick={handleConvert} className="w-full py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2">
+              <button onClick={handleConvert} className="w-full py-3.5 bg-brand-600 hover:bg-brand-500 active:scale-[0.98] text-white font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
                 Start Conversion
               </button>
             </div>
@@ -278,10 +278,10 @@ export default function Converter({ token, user }) {
               <p className="text-slate-400 text-sm mb-8">Custom Model Data predicates converted successfully to 1.21.4+ Items json structure.</p>
               
               <div className="flex gap-4 w-full max-w-sm">
-                <button onClick={resetState} className="flex-1 py-3 bg-dark-surface2 border border-dark-border hover:bg-dark-border text-white font-medium rounded-lg transition-colors text-sm">
+                <button onClick={resetState} className="flex-1 py-3 bg-dark-surface2 border border-dark-border hover:bg-dark-border active:scale-[0.98] text-white font-medium rounded-lg transition-all text-sm">
                   Start New
                 </button>
-                <button onClick={handleDownload} className="flex-1 py-3 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg transition-colors text-sm">
+                <button onClick={handleDownload} className="flex-1 py-3 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all text-sm">
                   Download Pack
                 </button>
               </div>
@@ -298,7 +298,7 @@ export default function Converter({ token, user }) {
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Conversion Failed</h3>
               <p className="text-red-400 text-sm mb-6 max-w-sm">{errorMsg}</p>
-              <button onClick={resetState} className="px-6 py-2.5 bg-dark-surface2 border border-dark-border hover:bg-dark-border text-white font-medium rounded-lg transition-colors text-sm">
+              <button onClick={resetState} className="px-6 py-2.5 bg-dark-surface2 border border-dark-border hover:bg-dark-border active:scale-[0.98] text-white font-medium rounded-lg transition-all text-sm">
                 Try Again
               </button>
             </div>

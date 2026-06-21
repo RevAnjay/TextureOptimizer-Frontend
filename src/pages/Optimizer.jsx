@@ -238,7 +238,7 @@ const Optimizer = ({ token, user }) => {
               <p className="text-slate-500 text-sm mb-6 text-center max-w-sm">Drag and drop your Minecraft resource pack here, or click to browse files.</p>
               
               <input type="file" accept=".zip" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-              <button onClick={() => fileInputRef.current.click()} className="px-6 py-2.5 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg transition-colors text-sm">
+              <button onClick={() => fileInputRef.current.click()} className="px-6 py-2.5 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all text-sm">
                 Browse Files
               </button>
             </div>
@@ -269,7 +269,7 @@ const Optimizer = ({ token, user }) => {
                     <button 
                       key={key}
                       onClick={() => applyTemplate(key)}
-                      className={`p-3 text-left rounded-xl border transition-all text-sm ${
+                      className={`p-3 text-left rounded-xl border transition-all text-sm active:scale-[0.98] ${
                         activeTemplate === key 
                         ? 'border-brand-500 bg-brand-500/10 text-brand-400' 
                         : 'border-dark-border bg-dark-surface2 hover:border-dark-borderHover text-slate-300'
@@ -282,7 +282,7 @@ const Optimizer = ({ token, user }) => {
                 </div>
               </div>
 
-              <button onClick={handleOptimize} className="w-full py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2">
+              <button onClick={handleOptimize} className="w-full py-3.5 bg-brand-600 hover:bg-brand-500 active:scale-[0.98] text-white font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
                 Start Processing
               </button>
             </div>
@@ -334,10 +334,10 @@ const Optimizer = ({ token, user }) => {
               </div>
 
               <div className="flex gap-4 w-full max-w-sm">
-                <button onClick={resetState} className="flex-1 py-3 bg-dark-surface2 border border-dark-border hover:bg-dark-border text-white font-medium rounded-lg transition-colors text-sm">
+                <button onClick={resetState} className="flex-1 py-3 bg-dark-surface2 border border-dark-border hover:bg-dark-border active:scale-[0.98] text-white font-medium rounded-lg transition-all text-sm">
                   Start New
                 </button>
-                <button onClick={handleDownload} className="flex-1 py-3 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg transition-colors text-sm">
+                <button onClick={handleDownload} className="flex-1 py-3 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all text-sm">
                   Download .zip
                 </button>
               </div>
@@ -352,7 +352,7 @@ const Optimizer = ({ token, user }) => {
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Process Failed</h3>
               <p className="text-red-400 text-sm mb-6 max-w-sm">{errorMsg}</p>
-              <button onClick={resetState} className="px-6 py-2.5 bg-dark-surface2 border border-dark-border hover:bg-dark-border text-white font-medium rounded-lg transition-colors text-sm">
+              <button onClick={resetState} className="px-6 py-2.5 bg-dark-surface2 border border-dark-border hover:bg-dark-border active:scale-[0.98] text-white font-medium rounded-lg transition-all text-sm">
                 Try Again
               </button>
             </div>
@@ -372,7 +372,7 @@ const Optimizer = ({ token, user }) => {
               {/* Kategori 1: Clean & Structure */}
               <div className="border border-dark-border bg-dark-bg/20 rounded-xl p-3.5 space-y-3">
                 <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider flex items-center gap-1.5 mb-1">
-                  <span>🧹</span> Clean & Structure
+                  <svg className="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> Clean & Structure
                 </h4>
                 
                 {/* Unused Cleaner */}
@@ -401,7 +401,7 @@ const Optimizer = ({ token, user }) => {
               {/* Kategori 2: Scaling & Resolution */}
               <div className="border border-dark-border bg-dark-bg/20 rounded-xl p-3.5 space-y-3">
                 <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider flex items-center gap-1.5 mb-1">
-                  <span>📐</span> Scaling & Resolution
+                  <svg className="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4M4 20l5-5m11 5v-4m0 4h-4m4 0l-5-5" /></svg> Scaling & Resolution
                 </h4>
                 
                 {/* Power-of-Two */}
@@ -453,7 +453,7 @@ const Optimizer = ({ token, user }) => {
               {/* Kategori 3: Image Optimization */}
               <div className="border border-dark-border bg-dark-bg/20 rounded-xl p-3.5 space-y-3">
                 <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider flex items-center gap-1.5 mb-1">
-                  <span>🖼️</span> Image Optimization
+                  <svg className="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> Image Optimization
                 </h4>
                 
                 {/* Pillow Compress */}
@@ -520,7 +520,7 @@ const Optimizer = ({ token, user }) => {
               {/* Kategori 4: Audio & Media */}
               <div className="border border-dark-border bg-dark-bg/20 rounded-xl p-3.5 space-y-3">
                 <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider flex items-center gap-1.5 mb-1">
-                  <span>🎵</span> Audio & Media
+                  <svg className="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg> Audio & Media
                 </h4>
                 
                 {/* Full Optimize */}

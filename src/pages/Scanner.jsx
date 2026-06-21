@@ -197,7 +197,7 @@ export default function Scanner({ token }) {
           <button 
             onClick={handleScan}
             disabled={!file || status === 'uploading' || status === 'scanning'}
-            className={`w-full py-4 rounded-2xl font-bold text-sm tracking-wide transition-all shadow-lg flex items-center justify-center gap-2
+            className={`w-full py-4 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2
               ${!file ? 'bg-dark-surface2 text-slate-500 cursor-not-allowed border border-dark-border' 
                 : status === 'uploading' || status === 'scanning' ? 'bg-brand-500/50 text-white cursor-wait animate-pulse'
                 : 'bg-brand-500 hover:bg-brand-400 text-white shadow-brand-500/20'}`}
@@ -254,7 +254,7 @@ export default function Scanner({ token }) {
               <div className="bg-dark-surface border border-dark-border rounded-2xl flex flex-col overflow-hidden max-h-[350px]">
                 <div className="p-4 border-b border-dark-border flex justify-between items-center bg-dark-bg">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-amber-500">📸</span> Giant Textures
+                    <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg> Giant Textures
                   </h3>
                   <span className="text-xs bg-dark-surface2 px-2 py-1 rounded text-slate-400">{result.high_res.length}</span>
                 </div>
@@ -274,7 +274,7 @@ export default function Scanner({ token }) {
               <div className="bg-dark-surface border border-dark-border rounded-2xl flex flex-col overflow-hidden max-h-[350px]">
                 <div className="p-4 border-b border-dark-border flex justify-between items-center bg-dark-bg">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-red-400">🔥</span> Heavy Files
+                    <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg> Heavy Files
                   </h3>
                   <span className="text-xs bg-dark-surface2 px-2 py-1 rounded text-slate-400">{result.large_files.length}</span>
                 </div>
@@ -294,7 +294,7 @@ export default function Scanner({ token }) {
               <div className="md:col-span-2 bg-dark-surface border border-dark-border rounded-2xl flex flex-col overflow-hidden max-h-[400px]">
                 <div className="p-4 border-b border-dark-border flex justify-between items-center bg-dark-bg">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-blue-400">👯</span> Duplicates
+                    <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg> Duplicates
                   </h3>
                   <span className="text-xs bg-dark-surface2 px-2 py-1 rounded text-slate-400">{result.duplicates.length} groups</span>
                 </div>
