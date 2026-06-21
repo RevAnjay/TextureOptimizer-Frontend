@@ -56,7 +56,7 @@ const Queue = ({ token }) => {
       case 'uploading':
         return { label: 'Uploading', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', dot: 'bg-sky-400', pulse: true };
       case 'queued':
-        return { label: 'In Queue', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', dot: 'bg-amber-400', pulse: true };
+        return { label: 'In queue', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', dot: 'bg-amber-400', pulse: true };
       case 'processing':
         return { label: 'Processing', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', dot: 'bg-blue-400', pulse: true };
       case 'scanning':
@@ -101,10 +101,9 @@ const Queue = ({ token }) => {
 
   return (
     <>
-      {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <h2 className="text-3xl font-bold text-white tracking-tight">Queue Monitor</h2>
+          <h2 className="text-3xl font-bold text-white tracking-tight">Queue monitor</h2>
           {totalTasks > 0 && (
             <span className="px-2.5 py-1 text-xs font-bold bg-brand-500/15 text-brand-400 rounded-lg border border-brand-500/20">
               {totalTasks} task{totalTasks !== 1 ? 's' : ''}
@@ -189,7 +188,7 @@ const Queue = ({ token }) => {
             <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-center mb-6">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Connection Error</h3>
+            <h3 className="text-xl font-bold text-white mb-2">Connection error</h3>
             <p className="text-slate-400 text-sm max-w-sm mb-6">
               {error}. Please verify that the API backend is running.
             </p>
@@ -197,7 +196,7 @@ const Queue = ({ token }) => {
               onClick={() => { setIsLoading(true); fetchTasks(); }}
               className="px-6 py-2.5 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg text-sm transition-colors"
             >
-              Retry Connection
+              Retry connection
             </button>
           </div>
         ) : sortedTasks.length === 0 ? (

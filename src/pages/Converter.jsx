@@ -50,7 +50,7 @@ export default function Converter({ token, user }) {
       const selectedFile = e.target.files[0];
       const max_size = user?.tier === 'premium' ? 100 * 1024 * 1024 : 30 * 1024 * 1024;
       
-      if (selectedFile.size > max_size) {
+      if (!user?.is_admin && selectedFile.size > max_size) {
         setErrorMsg(`Ukuran file melebihi batas. Limit akun ${user?.tier || 'free'} Anda adalah ${max_size / (1024*1024)}MB. Silakan upgrade ke Premium!`);
         return;
       }
@@ -164,7 +164,7 @@ export default function Converter({ token, user }) {
 
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white tracking-tight mb-2">Version Converter</h2>
+        <h2 className="text-3xl font-bold text-white tracking-tight mb-2">Version converter</h2>
         <p className="text-slate-400 text-sm">Convert legacy texture pack Custom Model Data to 1.21.4+ items format.</p>
       </div>
 
@@ -223,7 +223,7 @@ export default function Converter({ token, user }) {
               </div>
 
               <div className="mb-6">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Target Minecraft Version (pack_format)</label>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Target Minecraft version (pack_format)</label>
                 <select 
                   value={targetFormat} 
                   onChange={(e) => setTargetFormat(e.target.value)}
@@ -253,7 +253,7 @@ export default function Converter({ token, user }) {
                 <div className="absolute inset-0 border-2 border-dark-border rounded-full"></div>
                 <div className="absolute inset-0 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">{status === 'uploading' ? 'Uploading File...' : 'Converting Pack Format...'}</h3>
+              <h3 className="text-xl font-bold text-white mb-2">{status === 'uploading' ? 'Uploading file...' : 'Converting pack format...'}</h3>
               
               {status === 'processing' && (
                 <div className="w-full max-w-md mt-6">
@@ -274,7 +274,7 @@ export default function Converter({ token, user }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Conversion Complete</h3>
+              <h3 className="text-2xl font-bold text-white mb-2">Conversion complete</h3>
               <p className="text-slate-400 text-sm mb-8">Custom Model Data predicates converted successfully to 1.21.4+ Items json structure.</p>
               
               <div className="flex gap-4 w-full max-w-sm">
@@ -296,7 +296,7 @@ export default function Converter({ token, user }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Conversion Failed</h3>
+              <h3 className="text-xl font-bold text-white mb-2">Conversion failed</h3>
               <p className="text-red-400 text-sm mb-6 max-w-sm">{errorMsg}</p>
               <button onClick={resetState} className="px-6 py-2.5 bg-dark-surface2 border border-dark-border hover:bg-dark-border active:scale-[0.98] text-white font-medium rounded-lg transition-all text-sm">
                 Try Again

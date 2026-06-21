@@ -205,9 +205,9 @@ export default function Scanner({ token }) {
             {status === 'idle' || status === 'done' || status === 'error' ? (
               <>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                Scan Now
+                Scan pack
               </>
-            ) : status === 'uploading' ? 'Uploading...' : 'Scanning Pack...'}
+            ) : status === 'uploading' ? 'Uploading...' : 'Scanning pack...'}
           </button>
           
           {errorMsg && (
@@ -224,7 +224,7 @@ export default function Scanner({ token }) {
               <div className="w-16 h-16 bg-dark-surface2 border border-dark-border rounded-2xl flex items-center justify-center mb-6">
                 <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">No Data Available</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">No data available</h3>
               <p className="text-slate-400 text-sm max-w-sm">Upload a texture pack and click Scan to see the insights here.</p>
             </div>
           ) : status === 'scanning' ? (
@@ -237,7 +237,7 @@ export default function Scanner({ token }) {
               {/* Summary */}
               <div className="md:col-span-2 bg-gradient-to-br from-dark-surface to-dark-surface2 border border-dark-border rounded-2xl p-6 flex flex-wrap gap-8">
                 <div>
-                  <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Total Size</p>
+                  <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Total size</p>
                   <p className="text-3xl font-black text-white">{formatSize(result.total_size)}</p>
                 </div>
                 <div>
@@ -245,7 +245,7 @@ export default function Scanner({ token }) {
                   <p className="text-3xl font-black text-white">{result.total_files}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Potential Save</p>
+                  <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Potential save</p>
                   <p className="text-3xl font-black text-emerald-400">{formatSize(result.total_waste)}</p>
                 </div>
               </div>
@@ -254,7 +254,7 @@ export default function Scanner({ token }) {
               <div className="bg-dark-surface border border-dark-border rounded-2xl flex flex-col overflow-hidden max-h-[350px]">
                 <div className="p-4 border-b border-dark-border flex justify-between items-center bg-dark-bg">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg> Giant Textures
+                    <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg> Giant textures
                   </h3>
                   <span className="text-xs bg-dark-surface2 px-2 py-1 rounded text-slate-400">{result.high_res.length}</span>
                 </div>
@@ -274,7 +274,7 @@ export default function Scanner({ token }) {
               <div className="bg-dark-surface border border-dark-border rounded-2xl flex flex-col overflow-hidden max-h-[350px]">
                 <div className="p-4 border-b border-dark-border flex justify-between items-center bg-dark-bg">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg> Heavy Files
+                    <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg> Heavy files
                   </h3>
                   <span className="text-xs bg-dark-surface2 px-2 py-1 rounded text-slate-400">{result.large_files.length}</span>
                 </div>
