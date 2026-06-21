@@ -316,6 +316,27 @@ export default function Scanner({ token }) {
                   }
                 </div>
               </div>
+
+              {/* Invalid JSON Files */}
+              {result.invalid_jsons && result.invalid_jsons.length > 0 && (
+                <div className="md:col-span-2 bg-red-950/20 border border-red-500/20 rounded-2xl flex flex-col overflow-hidden max-h-[300px]">
+                  <div className="p-4 border-b border-red-500/20 flex justify-between items-center bg-red-950/40">
+                    <h3 className="text-sm font-bold text-red-400 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                      Invalid JSON Files (Syntax Errors)
+                    </h3>
+                    <span className="text-xs bg-red-950/60 px-2 py-1 rounded text-red-300">{result.invalid_jsons.length}</span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                    {result.invalid_jsons.map((js, i) => (
+                      <div key={i} className="flex flex-col gap-1 border-b border-red-500/10 pb-2 last:border-0 last:pb-0">
+                        <p className="text-[11px] text-red-300 font-mono break-all">{js.path}</p>
+                        <p className="text-[10px] text-slate-400 font-sans italic">{js.error}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
             </div>
           )}
