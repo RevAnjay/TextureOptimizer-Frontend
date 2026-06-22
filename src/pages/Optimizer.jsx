@@ -19,7 +19,8 @@ const Optimizer = ({ token, user }) => {
     fullOptimize: true,
     audioAggressive: false,
     removeShaders: false,
-    minifyJson: false
+    minifyJson: false,
+    sortJsonKeys: false
   });
 
   // Template Sistem
@@ -31,17 +32,17 @@ const Optimizer = ({ token, user }) => {
     script_default: { 
       name: 'Standard (All-in-One)', 
       desc: 'Recommended optimization: high image compression & OGG audio compression.',
-      opts: { unusedCleaner: true, powerOfTwo: false, downscale: false, tieredResize: false, compressPillow: false, compressPngquant: true, pngquantQuality: '60-90', compressOxipng: true, oxipngLevel: '4', fullOptimize: true, audioAggressive: false, removeShaders: false, minifyJson: true }
+      opts: { unusedCleaner: true, powerOfTwo: false, downscale: false, tieredResize: false, compressPillow: false, compressPngquant: true, pngquantQuality: '60-90', compressOxipng: true, oxipngLevel: '4', fullOptimize: true, audioAggressive: false, removeShaders: false, minifyJson: true, sortJsonKeys: false }
     },
     safe: {
       name: 'Safe (Lossless)', 
       desc: 'Reduces file size without losing any visual quality.',
-      opts: { unusedCleaner: false, powerOfTwo: false, downscale: false, tieredResize: false, compressPillow: true, compressPngquant: false, pngquantQuality: '60-90', compressOxipng: false, oxipngLevel: '4', fullOptimize: false, audioAggressive: false, removeShaders: false, minifyJson: true }
+      opts: { unusedCleaner: false, powerOfTwo: false, downscale: false, tieredResize: false, compressPillow: true, compressPngquant: false, pngquantQuality: '60-90', compressOxipng: false, oxipngLevel: '4', fullOptimize: false, audioAggressive: false, removeShaders: false, minifyJson: true, sortJsonKeys: false }
     },
     aggressive: {
       name: 'Aggressive (Max FPS)', 
       desc: 'Downscale resolution, reduce colors, and clean up junk files for maximum performance.',
-      opts: { unusedCleaner: true, powerOfTwo: true, downscale: true, minPixel: '1024', tieredResize: true, compressPillow: false, compressPngquant: true, pngquantQuality: '40-80', compressOxipng: false, oxipngLevel: '4', fullOptimize: false, audioAggressive: true, removeShaders: false, minifyJson: true }
+      opts: { unusedCleaner: true, powerOfTwo: true, downscale: true, minPixel: '1024', tieredResize: true, compressPillow: false, compressPngquant: true, pngquantQuality: '40-80', compressOxipng: false, oxipngLevel: '4', fullOptimize: false, audioAggressive: true, removeShaders: false, minifyJson: true, sortJsonKeys: false }
     }
   };
   const [activeTemplate, setActiveTemplate] = useState('script_default');
@@ -399,15 +400,30 @@ const Optimizer = ({ token, user }) => {
                 </label>
 
                 {/* Minify JSON */}
-                <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-minify-json">
-                  <div className="mt-0.5">
-                    <input type="checkbox" id="opt-minify-json" checked={options.minifyJson} onChange={(e) => handleOptionChange('minifyJson', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Minify JSON & mcmeta</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Strips comments and unnecessary whitespaces from JSON models and mcmeta files.</p>
-                  </div>
-                </label>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-minify-json">
+                    <div className="mt-0.5">
+                      <input type="checkbox" id="opt-minify-json" checked={options.minifyJson} onChange={(e) => handleOptionChange('minifyJson', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Minify JSON & mcmeta</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Strips comments and unnecessary whitespaces from JSON models and mcmeta files.</p>
+                    </div>
+                  </label>
+                  {options.minifyJson && (
+                    <div className="ml-7 border-l border-dark-border/40 pl-3 mt-1">
+                      <label className="flex items-start gap-2 cursor-pointer group" htmlFor="opt-sort-json-keys">
+                        <div className="mt-0.5">
+                          <input type="checkbox" id="opt-sort-json-keys" checked={options.sortJsonKeys} onChange={(e) => handleOptionChange('sortJsonKeys', e.target.checked)} className="w-3.5 h-3.5 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-slate-300 group-hover:text-white transition-colors">Alphabetical key reordering</p>
+                          <p className="text-[10px] text-slate-500 leading-normal">Sorts JSON keys alphabetically. May cause parsing issues on mobile launchers.</p>
+                        </div>
+                      </label>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Kategori 2: Resolution & scaling */}
