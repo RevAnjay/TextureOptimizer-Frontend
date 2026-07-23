@@ -11,6 +11,7 @@ export default function BedrockConverter({ token, user }) {
   const [optimizePack, setOptimizePack] = useState(true);
   const [maxAnimationFrames, setMaxAnimationFrames] = useState(0);
   const [maxCompression, setMaxCompression] = useState(false);
+  const [useHashedIds, setUseHashedIds] = useState(true);
   const [taskId, setTaskId] = useState(null);
   const [status, setStatus] = useState('idle'); // idle, uploading, processing, done, error
   const [progress, setProgress] = useState({ current: 0, total: 0, eta: 0 });
@@ -88,6 +89,7 @@ export default function BedrockConverter({ token, user }) {
     formData.append('optimizePack', optimizePack ? 'true' : 'false');
     formData.append('maxAnimationFrames', String(maxAnimationFrames));
     formData.append('maxCompression', maxCompression ? 'true' : 'false');
+    formData.append('useHashedIds', useHashedIds ? 'true' : 'false');
 
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/convert`, {
@@ -289,7 +291,16 @@ export default function BedrockConverter({ token, user }) {
                   />
                 </div>
 
-                <div className="flex items-center gap-6">
+                <div className="flex flex-wrap items-center gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useHashedIds}
+                      onChange={(e) => setUseHashedIds(e.target.checked)}
+                      className="w-4 h-4 rounded border-dark-border bg-dark-surface2 text-brand-500 focus:ring-brand-500"
+                    />
+                    <span className="text-sm text-slate-300">Gunakan Short Hash Identifier (rev&lt;hash&gt;)</span>
+                  </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
