@@ -6,7 +6,11 @@ export default function BedrockConverter({ token, user }) {
 
   // State
   const [baseItem, setBaseItem] = useState('minecraft:paper');
-  const [attachableMaterial, setAttachableMaterial] = useState('entity_alphatest');
+  const [attachableMaterial, setAttachableMaterial] = useState('entity_alphatest_one_sided');
+  const [packName, setPackName] = useState('converted_pack');
+  const [optimizePack, setOptimizePack] = useState(true);
+  const [maxAnimationFrames, setMaxAnimationFrames] = useState(0);
+  const [maxCompression, setMaxCompression] = useState(false);
   const [taskId, setTaskId] = useState(null);
   const [status, setStatus] = useState('idle'); // idle, uploading, processing, done, error
   const [progress, setProgress] = useState({ current: 0, total: 0, eta: 0 });
@@ -80,6 +84,10 @@ export default function BedrockConverter({ token, user }) {
     formData.append('targetFormat', '999'); // 999 = Bedrock Edition & GeyserMC format
     formData.append('baseItem', baseItem);
     formData.append('attachableMaterial', attachableMaterial);
+    formData.append('packName', packName);
+    formData.append('optimizePack', optimizePack ? 'true' : 'false');
+    formData.append('maxAnimationFrames', String(maxAnimationFrames));
+    formData.append('maxCompression', maxCompression ? 'true' : 'false');
 
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/convert`, {
@@ -247,25 +255,81 @@ export default function BedrockConverter({ token, user }) {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Attachable Material</label>
-                  <select 
-                    value={attachableMaterial} 
+                  <select
+                    value={attachableMaterial}
                     onChange={(e) => setAttachableMaterial(e.target.value)}
                     className="w-full bg-dark-surface2 border border-dark-border text-slate-200 rounded-xl p-3 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm"
                   >
-                    <option value="entity_alphatest">entity_alphatest (Standard Alpha Test - Recommended)</option>
+                    <option value="entity_alphatest_one_sided">entity_alphatest_one_sided (Default - Recommended)</option>
+                    <option value="entity_alphatest">entity_alphatest (Standard Alpha Test)</option>
                     <option value="entity_emissive_alpha">entity_emissive_alpha (Glow / Emissive Effects)</option>
                     <option value="entity_cutout">entity_cutout (Sharp Cutout)</option>
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Pack Name</label>
+                  <input
+                    type="text"
+                    value={packName}
+                    onChange={(e) => setPackName(e.target.value)}
+                    placeholder="converted_pack"
+                    className="w-full bg-dark-surface2 border border-dark-border text-slate-200 rounded-xl p-3 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Max Animation Frames (0 = unlimited)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={maxAnimationFrames}
+                    onChange={(e) => setMaxAnimationFrames(parseInt(e.target.value) || 0)}
+                    className="w-full bg-dark-surface2 border border-dark-border text-slate-200 rounded-xl p-3 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm"
+                  />
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={optimizePack}
+                      onChange={(e) => setOptimizePack(e.target.checked)}
+                      className="w-4 h-4 rounded border-dark-border bg-dark-surface2 text-brand-500 focus:ring-brand-500"
+                    />
+                    <span className="text-sm text-slate-300">Optimize Pack (lossless)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={maxCompression}
+                      onChange={(e) => setMaxCompression(e.target.checked)}
+                      className="w-4 h-4 rounded border-dark-border bg-dark-surface2 text-brand-500 focus:ring-brand-500"
+                    />
+                    <span className="text-sm text-slate-300">Max Compression (slow)</span>
+                  </label>
+                </div>
+
                 <div className="bg-dark-surface2 border border-dark-border rounded-xl p-4 space-y-3">
-                  <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider">Output Assets Included (2 Output Files)</h4>
+                  <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider">Output Bundle (zip)</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-300">
                     <div className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> Bedrock Pack (`bedrock_texture.mcpack`)
+                      <span className="text-emerald-400">✓</span> Bedrock Pack (.mcpack)
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> Geyser Mappings (`geyser_texture.zip`)
+                      <span className="text-emerald-400">✓</span> Geyser Mappings (geyser_mappings.json)
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Geyser Blocks (geyser_blocks.json)
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Furniture YAML (if applicable)
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Display Entity Config (if applicable)
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Conversion Report (report.json)
                     </div>
                   </div>
                 </div>
