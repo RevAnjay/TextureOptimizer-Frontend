@@ -4,6 +4,7 @@ import Register from './pages/Register'
 import Admin from './pages/Admin'
 import Scanner from './pages/Scanner'
 import Converter from './pages/Converter'
+import BedrockConverter from './pages/BedrockConverter'
 import Optimizer from './pages/Optimizer'
 import Queue from './pages/Queue'
 import ProfileModal from './components/ProfileModal'
@@ -156,6 +157,8 @@ function App() {
             <Scanner token={token} />
           ) : currentPage === 'converter' ? (
             <Converter token={token} user={user} />
+          ) : currentPage === 'bedrock' ? (
+            <BedrockConverter token={token} user={user} />
           ) : currentPage === 'queue' ? (
             <Queue token={token} />
           ) : (

@@ -7,6 +7,7 @@ const Optimizer = ({ token, user }) => {
   // Opsi Optimasi
   const [options, setOptions] = useState({
     unusedCleaner: false,
+    deduplicate: true,
     powerOfTwo: false,
     downscale: false,
     minPixel: '1024',
@@ -32,17 +33,17 @@ const Optimizer = ({ token, user }) => {
     script_default: { 
       name: 'Standard (All-in-One)', 
       desc: 'Recommended optimization: high image compression & OGG audio compression.',
-      opts: { unusedCleaner: true, powerOfTwo: false, downscale: false, tieredResize: false, compressPillow: false, compressPngquant: true, pngquantQuality: '60-90', compressOxipng: true, oxipngLevel: '4', fullOptimize: true, audioAggressive: false, removeShaders: false, minifyJson: true, sortJsonKeys: false }
+      opts: { unusedCleaner: true, deduplicate: true, powerOfTwo: false, downscale: false, tieredResize: false, compressPillow: false, compressPngquant: true, pngquantQuality: '60-90', compressOxipng: true, oxipngLevel: '4', fullOptimize: true, audioAggressive: false, removeShaders: false, minifyJson: true, sortJsonKeys: false }
     },
     safe: {
       name: 'Safe (Lossless)', 
       desc: 'Reduces file size without losing any visual quality.',
-      opts: { unusedCleaner: false, powerOfTwo: false, downscale: false, tieredResize: false, compressPillow: true, compressPngquant: false, pngquantQuality: '60-90', compressOxipng: false, oxipngLevel: '4', fullOptimize: false, audioAggressive: false, removeShaders: false, minifyJson: true, sortJsonKeys: false }
+      opts: { unusedCleaner: false, deduplicate: true, powerOfTwo: false, downscale: false, tieredResize: false, compressPillow: true, compressPngquant: false, pngquantQuality: '60-90', compressOxipng: false, oxipngLevel: '4', fullOptimize: false, audioAggressive: false, removeShaders: false, minifyJson: true, sortJsonKeys: false }
     },
     aggressive: {
       name: 'Aggressive (Max FPS)', 
       desc: 'Downscale resolution, reduce colors, and clean up junk files for maximum performance.',
-      opts: { unusedCleaner: true, powerOfTwo: true, downscale: true, minPixel: '1024', tieredResize: true, compressPillow: false, compressPngquant: true, pngquantQuality: '40-80', compressOxipng: false, oxipngLevel: '4', fullOptimize: false, audioAggressive: true, removeShaders: false, minifyJson: true, sortJsonKeys: false }
+      opts: { unusedCleaner: true, deduplicate: true, powerOfTwo: true, downscale: true, minPixel: '1024', tieredResize: true, compressPillow: false, compressPngquant: true, pngquantQuality: '40-80', compressOxipng: false, oxipngLevel: '4', fullOptimize: false, audioAggressive: true, removeShaders: false, minifyJson: true, sortJsonKeys: false }
     }
   };
   const [activeTemplate, setActiveTemplate] = useState('script_default');
@@ -321,17 +322,47 @@ const Optimizer = ({ token, user }) => {
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">Optimization Complete</h3>
-              <p className="text-slate-400 text-sm mb-8">Successfully compressed your resource pack.</p>
+              <p className="text-slate-400 text-sm mb-6">Successfully compressed and cleaned your resource pack.</p>
               
-              <div className="flex items-center justify-center gap-8 mb-8">
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Original</p>
-                  <p className="text-xl font-semibold text-slate-300">{formatSize(sizes.original)}</p>
+              {/* Savings Banner */}
+              <div className="w-full max-w-md bg-dark-surface2 border border-dark-border rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs text-slate-400 uppercase tracking-wider">Original Size</p>
+                    <p className="text-lg font-semibold text-slate-300">{formatSize(sizes.original)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-brand-400 uppercase tracking-wider font-bold">Optimized Size</p>
+                    <p className="text-xl font-bold text-white">{formatSize(sizes.final)}</p>
+                  </div>
                 </div>
-                <div className="w-px h-10 bg-dark-border"></div>
-                <div>
-                  <p className="text-xs text-brand-500 uppercase tracking-wider mb-1">Optimized</p>
-                  <p className="text-2xl font-bold text-white">{formatSize(sizes.final)}</p>
+                {sizes.original > 0 && (
+                  <div className="w-full bg-dark-bg rounded-full h-2 overflow-hidden flex">
+                    <div 
+                      className="bg-brand-500 h-full transition-all duration-500" 
+                      style={{ width: `${Math.max(5, Math.min(100, Math.round((sizes.final / sizes.original) * 100)))}%` }}
+                    />
+                  </div>
+                )}
+                <p className="text-xs text-emerald-400 font-semibold mt-2 text-center">
+                  Saved {formatSize(sizes.original > sizes.final ? sizes.original - sizes.final : 0)} ({sizes.original > 0 ? Math.round(((sizes.original - sizes.final) / sizes.original) * 100) : 0}% smaller)
+                </p>
+              </div>
+
+              {/* Audit Summary Breakdown */}
+              <div className="w-full max-w-md bg-dark-bg/60 border border-dark-border/60 rounded-xl p-4 mb-8 text-left space-y-2 text-xs">
+                <p className="font-bold text-slate-300 uppercase tracking-wider text-[10px] mb-2">Optimization Audit Summary</p>
+                <div className="flex items-center justify-between text-slate-300">
+                  <span className="flex items-center gap-1.5">👯 Smart Asset Consolidation</span>
+                  <span className="text-emerald-400 font-medium">{options.deduplicate ? 'Active' : 'Disabled'}</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-300">
+                  <span className="flex items-center gap-1.5">🗑️ Unused Cleaner & Shaders</span>
+                  <span className="text-emerald-400 font-medium">{options.unusedCleaner ? 'Active' : 'Skipped'}</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-300">
+                  <span className="flex items-center gap-1.5">🗜️ PNG & JSON Minifier</span>
+                  <span className="text-emerald-400 font-medium">{options.compressOxipng ? 'Oxipng Presets' : 'Standard'}</span>
                 </div>
               </div>
 
@@ -385,6 +416,17 @@ const Optimizer = ({ token, user }) => {
                   <div>
                     <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Remove unused textures</p>
                     <p className="text-xs text-slate-500 mt-0.5">Scans model and blockstate references to delete textures that aren't actually loaded by the game.</p>
+                  </div>
+                </label>
+
+                {/* Deduplicate Textures */}
+                <label className="flex items-start gap-3 cursor-pointer group" htmlFor="opt-deduplicate">
+                  <div className="mt-0.5">
+                    <input type="checkbox" id="opt-deduplicate" checked={options.deduplicate} onChange={(e) => handleOptionChange('deduplicate', e.target.checked)} className="w-4 h-4 rounded border-dark-border bg-dark-bg checked:bg-brand-500 focus:ring-0 focus:ring-offset-0" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Smart Asset Stream Consolidation</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Analyzes resource streams to consolidate identical asset payloads and collapse index references.</p>
                   </div>
                 </label>
                 
