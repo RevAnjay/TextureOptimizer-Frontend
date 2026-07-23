@@ -26,7 +26,7 @@ const getPageFromPath = (pathname) => {
     case '/login': return 'login';
     case '/dashboard':
     case '/optimizer':
-    case '': return 'home';
+    case '': return 'login';
     default: return 'home';
   }
 };
