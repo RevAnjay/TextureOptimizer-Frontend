@@ -12,15 +12,70 @@ import Sidebar from './components/Sidebar'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 
+const getPageFromPath = (pathname) => {
+  const clean = pathname.replace(/\/$/, '');
+  switch (clean) {
+    case '/bedrock-converter': return 'bedrock';
+    case '/converter': return 'converter';
+    case '/scanner': return 'scanner';
+    case '/queue': return 'queue';
+    case '/admin': return 'admin';
+    case '/register': return 'register';
+    case '/forgot-password': return 'forgot-password';
+    case '/reset-password': return 'reset-password';
+    case '/login': return 'login';
+    case '/dashboard':
+    case '/optimizer':
+    case '': return 'home';
+    default: return 'home';
+  }
+};
+
+const getPathFromPage = (page) => {
+  switch (page) {
+    case 'bedrock': return '/bedrock-converter';
+    case 'converter': return '/converter';
+    case 'scanner': return '/scanner';
+    case 'queue': return '/queue';
+    case 'admin': return '/admin';
+    case 'home': return '/dashboard';
+    case 'register': return '/register';
+    case 'forgot-password': return '/forgot-password';
+    case 'reset-password': return '/reset-password';
+    case 'login': return '/login';
+    default: return '/dashboard';
+  }
+};
+
 function App() {
-  const [currentPage, setCurrentPage] = useState('login') // 'login', 'register', 'home', 'queue'
+  const [currentPage, setCurrentPageState] = useState(() => getPageFromPath(window.location.pathname));
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(localStorage.getItem('token') || null)
   const [showProfile, setShowProfile] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(!!localStorage.getItem('token'))
   const [resetEmail, setResetEmail] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  
+
+  const setCurrentPage = (pageOrFn) => {
+    setCurrentPageState((prev) => {
+      const nextPage = typeof pageOrFn === 'function' ? pageOrFn(prev) : pageOrFn;
+      const path = getPathFromPage(nextPage);
+      if (window.location.pathname !== path) {
+        window.history.pushState({}, '', path);
+      }
+      return nextPage;
+    });
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const page = getPageFromPath(window.location.pathname);
+      setCurrentPageState(page);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Session Persistence Effect
   useEffect(() => {
     if (token) {
@@ -34,7 +89,7 @@ function App() {
       })
       .then(data => {
         setUser(data)
-        setCurrentPage(prev => (prev === 'login' || prev === 'register') ? 'home' : prev)
+        setCurrentPage(prev => (prev === 'login' || prev === 'register') ? getPageFromPath(window.location.pathname) : prev)
       })
       .catch(() => {
         handleLogout()

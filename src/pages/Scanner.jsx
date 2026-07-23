@@ -15,6 +15,7 @@ export default function Scanner({ token }) {
   const [status, setStatus] = useState('idle'); // idle, uploading, scanning, done, error
   const [errorMsg, setErrorMsg] = useState(null);
   const [result, setResult] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const formatSize = (bytes) => {
     if (bytes === 0) return '0 B';
@@ -51,11 +52,13 @@ export default function Scanner({ token }) {
     setTaskId(null);
     setErrorMsg(null);
     setResult(null);
+    setUploadProgress(0);
   };
 
-  const handleScan = async () => {
+  const handleScan = () => {
     if (!file) return;
     setStatus('uploading');
+    setUploadProgress(0);
     setErrorMsg(null);
 
     const formData = new FormData();
@@ -63,24 +66,39 @@ export default function Scanner({ token }) {
     formData.append('minPixel', options.minPixel.toString());
     formData.append('minKb', options.minKb.toString());
 
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/scan`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
-      });
-      if (!res.ok) throw new Error('Connection to server failed.');
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      
-      setTaskId(data.task_id);
-      setStatus('scanning');
-    } catch (err) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${import.meta.env.VITE_API_URL}/scan`);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        setUploadProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data.error) throw new Error(data.error);
+          setTaskId(data.task_id);
+          setStatus('scanning');
+        } catch (err) {
+          setStatus('error');
+          setErrorMsg(err.message);
+        }
+      } else {
+        setStatus('error');
+        setErrorMsg('Connection to server failed.');
+      }
+    };
+
+    xhr.onerror = () => {
       setStatus('error');
-      setErrorMsg(err.message);
-    }
+      setErrorMsg('Failed to connect to the server.');
+    };
+
+    xhr.send(formData);
   };
 
   // Polling Effect
@@ -207,7 +225,14 @@ export default function Scanner({ token }) {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 Scan pack
               </>
-            ) : status === 'uploading' ? 'Uploading...' : 'Scanning pack...'}
+            ) : status === 'uploading' ? (
+              <div className="flex items-center gap-3 w-full">
+                <span>Uploading... {uploadProgress}%</span>
+                <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                  <div className="h-full bg-white transition-all duration-200 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
+                </div>
+              </div>
+            ) : 'Scanning pack...'}
           </button>
           
           {errorMsg && (

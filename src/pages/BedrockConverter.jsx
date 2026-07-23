@@ -66,18 +66,28 @@ export default function BedrockConverter({ token, user }) {
     }
   };
 
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [smoothProgress, setSmoothProgress] = useState(0);
+  const [phaseText, setPhaseText] = useState('');
+
   const resetState = () => {
     setStatus('idle');
     setTaskId(null);
     setErrorMsg(null);
     setProgress({ current: 0, total: 0, eta: 0 });
+    setUploadProgress(0);
+    setSmoothProgress(0);
+    setPhaseText('');
     setLogs([]);
     setSizes({ original: 0, final: 0 });
   };
 
-  const handleConvert = async () => {
+  const handleConvert = () => {
     if (!file) return;
     setStatus('uploading');
+    setUploadProgress(0);
+    setSmoothProgress(0);
+    setPhaseText('Uploading resource pack...');
     setErrorMsg(null);
 
     const formData = new FormData();
@@ -91,27 +101,46 @@ export default function BedrockConverter({ token, user }) {
     formData.append('maxCompression', maxCompression ? 'true' : 'false');
     formData.append('useHashedIds', useHashedIds ? 'true' : 'false');
 
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/convert`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Koneksi ke server gagal. Pastikan backend aktif.');
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${import.meta.env.VITE_API_URL}/convert`);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        setUploadProgress(pct);
       }
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      
-      setTaskId(data.task_id);
-      setStatus('processing');
-    } catch (err) {
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data.error) throw new Error(data.error);
+          setTaskId(data.task_id);
+          setStatus('processing');
+          setSmoothProgress(5);
+        } catch (err) {
+          setStatus('error');
+          setErrorMsg(err.message);
+        }
+      } else {
+        try {
+          const errorData = JSON.parse(xhr.responseText);
+          setErrorMsg(errorData.detail || 'Koneksi ke server gagal. Pastikan backend aktif.');
+        } catch {
+          setErrorMsg('Terjadi kesalahan saat mengunggah file.');
+        }
+        setStatus('error');
+      }
+    };
+
+    xhr.onerror = () => {
       setStatus('error');
-      setErrorMsg(err.message);
-    }
+      setErrorMsg('Gagal terhubung ke server backend.');
+    };
+
+    xhr.send(formData);
   };
 
   // Polling status
@@ -151,6 +180,36 @@ export default function BedrockConverter({ token, user }) {
     return () => clearInterval(interval);
   }, [status, taskId]);
 
+  // Smooth progress animation & phase text
+  useEffect(() => {
+    let timer;
+    if (status === 'processing') {
+      timer = setInterval(() => {
+        setSmoothProgress((prev) => {
+          const backendPct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+          const target = Math.max(backendPct, prev + 1);
+          const next = Math.min(96, target);
+
+          if (next < 25) {
+            setPhaseText('Scanning Java model definitions & override chains...');
+          } else if (next < 60) {
+            setPhaseText('Rendering 3D model icons & compositing 2D layers...');
+          } else if (next < 85) {
+            setPhaseText('Generating Bedrock attachables & GeyserMC v2 mappings...');
+          } else {
+            setPhaseText('Building Bedrock .mcpack archive & finalizing bundle...');
+          }
+
+          return next;
+        });
+      }, 300);
+    } else if (status === 'done') {
+      setSmoothProgress(100);
+      setPhaseText('Conversion complete!');
+    }
+    return () => clearInterval(timer);
+  }, [status, progress]);
+
   // Auto-scroll logs
   useEffect(() => {
     if (logsEndRef.current) {
@@ -161,8 +220,6 @@ export default function BedrockConverter({ token, user }) {
   const handleDownload = () => {
     window.location.href = `${import.meta.env.VITE_API_URL}/download/${taskId}`;
   };
-
-  const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 
   return (
     <div className="w-full flex-1 flex flex-col h-full bg-dark-bg animate-fade-in-up">
@@ -359,15 +416,37 @@ export default function BedrockConverter({ token, user }) {
                 <div className="absolute inset-0 border-4 border-dark-surface2 rounded-full"></div>
                 <div className="absolute inset-0 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">{status === 'uploading' ? 'Uploading File...' : 'Converting to Bedrock Format...'}</h3>
               
-              {status === 'processing' && (
-                <div className="w-full max-w-md mt-6">
-                  <div className="flex justify-between text-xs font-medium text-slate-400 mb-2">
-                    <span>{percentage}%</span>
+              {status === 'uploading' ? (
+                <div className="w-full max-w-md">
+                  <h3 className="text-xl font-bold text-white mb-2">Uploading Resource Pack...</h3>
+                  <p className="text-slate-400 text-xs mb-4">
+                    {((file?.size || 0) * uploadProgress / 100 / (1024 * 1024)).toFixed(1)} MB / {formatSize(file?.size)}
+                  </p>
+                  <div className="flex justify-between text-xs font-semibold text-brand-400 mb-2">
+                    <span>Uploading to server</span>
+                    <span>{uploadProgress}%</span>
                   </div>
-                  <div className="w-full h-1.5 bg-dark-surface2 rounded-full overflow-hidden">
-                    <div className="h-full bg-brand-500 transition-all duration-300" style={{ width: `${percentage}%` }}></div>
+                  <div className="w-full h-2.5 bg-dark-surface2 rounded-full overflow-hidden border border-dark-border">
+                    <div 
+                      className="h-full bg-gradient-to-r from-brand-600 to-brand-400 transition-all duration-200 rounded-full" 
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full max-w-md">
+                  <h3 className="text-xl font-bold text-white mb-2">Converting to Bedrock Edition...</h3>
+                  <p className="text-brand-400 text-xs font-medium mb-4 min-h-[18px]">{phaseText}</p>
+                  <div className="flex justify-between text-xs font-semibold text-slate-400 mb-2">
+                    <span>Conversion Progress</span>
+                    <span>{smoothProgress}%</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-dark-surface2 rounded-full overflow-hidden border border-dark-border">
+                    <div 
+                      className="h-full bg-gradient-to-r from-brand-600 via-emerald-500 to-brand-400 transition-all duration-300 rounded-full" 
+                      style={{ width: `${smoothProgress}%` }}
+                    ></div>
                   </div>
                 </div>
               )}

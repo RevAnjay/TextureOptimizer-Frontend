@@ -55,6 +55,7 @@ const Optimizer = ({ token, user }) => {
   const [logs, setLogs] = useState([]);
   const [sizes, setSizes] = useState({ original: 0, final: 0 });
   const [errorMsg, setErrorMsg] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const fileInputRef = useRef(null);
   const logsEndRef = useRef(null);
@@ -94,6 +95,7 @@ const Optimizer = ({ token, user }) => {
     setTaskId(null);
     setErrorMsg(null);
     setProgress({ current: 0, total: 0, eta: 0 });
+    setUploadProgress(0);
     setLogs([]);
     setSizes({ original: 0, final: 0 });
   };
@@ -110,9 +112,10 @@ const Optimizer = ({ token, user }) => {
     setOptions(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleOptimize = async () => {
+  const handleOptimize = () => {
     if (!file) return;
     setStatus('uploading');
+    setUploadProgress(0);
     setErrorMsg(null);
 
     const formData = new FormData();
@@ -121,24 +124,39 @@ const Optimizer = ({ token, user }) => {
       formData.append(key, typeof val === 'boolean' ? val.toString() : val);
     });
 
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
-      });
-      if (!res.ok) throw new Error('Connection to server failed. Ensure backend is running.');
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      
-      setTaskId(data.task_id);
-      setStatus('processing');
-    } catch (err) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${import.meta.env.VITE_API_URL}/upload`);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        setUploadProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data.error) throw new Error(data.error);
+          setTaskId(data.task_id);
+          setStatus('processing');
+        } catch (err) {
+          setStatus('error');
+          setErrorMsg(err.message);
+        }
+      } else {
+        setStatus('error');
+        setErrorMsg('Connection to server failed. Ensure backend is running.');
+      }
+    };
+
+    xhr.onerror = () => {
       setStatus('error');
-      setErrorMsg(err.message);
-    }
+      setErrorMsg('Failed to connect to the server.');
+    };
+
+    xhr.send(formData);
   };
 
   // Polling Effect
@@ -298,16 +316,30 @@ const Optimizer = ({ token, user }) => {
                 <div className="absolute inset-0 border-2 border-dark-border rounded-full"></div>
                 <div className="absolute inset-0 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">{status === 'uploading' ? 'Uploading File...' : 'Optimizing Pack...'}</h3>
               
-              {status === 'processing' && (
-                <div className="w-full max-w-md mt-6">
+              {status === 'uploading' ? (
+                <div className="w-full max-w-md">
+                  <h3 className="text-xl font-bold text-white mb-2">Uploading Resource Pack...</h3>
+                  <p className="text-slate-400 text-xs mb-4">
+                    {((file?.size || 0) * uploadProgress / 100 / (1024 * 1024)).toFixed(1)} MB / {formatSize(file?.size)}
+                  </p>
+                  <div className="flex justify-between text-xs font-semibold text-brand-400 mb-2">
+                    <span>Uploading to server</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-dark-surface2 rounded-full overflow-hidden border border-dark-border">
+                    <div className="h-full bg-gradient-to-r from-brand-600 to-brand-400 transition-all duration-200 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full max-w-md">
+                  <h3 className="text-xl font-bold text-white mb-2">Optimizing Pack...</h3>
                   <div className="flex justify-between text-xs font-medium text-slate-400 mb-2">
                     <span>{percentage}%</span>
                     <span>{formatTime(progress.eta)} remaining</span>
                   </div>
-                  <div className="w-full h-1.5 bg-dark-surface2 rounded-full overflow-hidden">
-                    <div className="h-full bg-brand-500 transition-all duration-300" style={{ width: `${percentage}%` }}></div>
+                  <div className="w-full h-2.5 bg-dark-surface2 rounded-full overflow-hidden border border-dark-border">
+                    <div className="h-full bg-gradient-to-r from-brand-600 to-brand-400 transition-all duration-300 rounded-full" style={{ width: `${percentage}%` }}></div>
                   </div>
                   <p className="text-xs text-slate-500 mt-4 text-left">Processing file {progress.current} of {progress.total}</p>
                 </div>
