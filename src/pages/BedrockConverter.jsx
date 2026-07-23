@@ -259,19 +259,13 @@ export default function BedrockConverter({ token, user }) {
                 </div>
 
                 <div className="bg-dark-surface2 border border-dark-border rounded-xl p-4 space-y-3">
-                  <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider">Output Assets Included</h4>
+                  <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider">Output Assets Included (2 Output Files)</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-300">
                     <div className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> Bedrock Manifest (`manifest.json`)
+                      <span className="text-emerald-400">✓</span> Bedrock Pack (`bedrock_texture.mcpack`)
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> Item Texture Atlas (`textures/item_texture.json`)
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> Geyser Custom Items (`geyser_mappings.json`)
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> Bedrock Resource Pack (.mcpack structure)
+                      <span className="text-emerald-400">✓</span> Geyser Mappings (`geyser_texture.zip`)
                     </div>
                   </div>
                 </div>
