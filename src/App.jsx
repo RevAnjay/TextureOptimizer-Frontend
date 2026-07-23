@@ -26,7 +26,7 @@ const getPageFromPath = (pathname) => {
     case '/login': return 'login';
     case '/dashboard':
     case '/optimizer':
-    case '': return 'login';
+    case '': return 'home';
     default: return 'home';
   }
 };
@@ -48,7 +48,12 @@ const getPathFromPage = (page) => {
 };
 
 function App() {
-  const [currentPage, setCurrentPageState] = useState(() => getPageFromPath(window.location.pathname));
+  const [currentPage, setCurrentPageState] = useState(() => {
+    const page = getPageFromPath(window.location.pathname);
+    const hasToken = !!localStorage.getItem('token');
+    if (page === 'home' && !hasToken) return 'login';
+    return page;
+  });
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(localStorage.getItem('token') || null)
   const [showProfile, setShowProfile] = useState(false)
