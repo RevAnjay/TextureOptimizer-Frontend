@@ -5,6 +5,8 @@ export default function BedrockConverter({ token, user }) {
   const [isDragging, setIsDragging] = useState(false);
 
   // State
+  const [baseItem, setBaseItem] = useState('minecraft:paper');
+  const [attachableMaterial, setAttachableMaterial] = useState('entity_alphatest');
   const [taskId, setTaskId] = useState(null);
   const [status, setStatus] = useState('idle'); // idle, uploading, processing, done, error
   const [progress, setProgress] = useState({ current: 0, total: 0, eta: 0 });
@@ -76,6 +78,8 @@ export default function BedrockConverter({ token, user }) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('targetFormat', '999'); // 999 = Bedrock Edition & GeyserMC format
+    formData.append('baseItem', baseItem);
+    formData.append('attachableMaterial', attachableMaterial);
 
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/convert`, {
@@ -226,20 +230,49 @@ export default function BedrockConverter({ token, user }) {
                 </button>
               </div>
 
-              <div className="mb-6 bg-dark-surface2 border border-dark-border rounded-xl p-4 space-y-3">
-                <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider">Output Assets Included</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-300">
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400">✓</span> Bedrock Manifest (`manifest.json`)
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400">✓</span> Item Texture Atlas (`textures/item_texture.json`)
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400">✓</span> Geyser Custom Items (`geyser_mappings.json`)
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400">✓</span> Bedrock Resource Pack (.mcpack structure)
+              <div className="mb-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Fallback Base Item</label>
+                  <select 
+                    value={baseItem} 
+                    onChange={(e) => setBaseItem(e.target.value)}
+                    className="w-full bg-dark-surface2 border border-dark-border text-slate-200 rounded-xl p-3 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm"
+                  >
+                    <option value="minecraft:paper">minecraft:paper (Default - General Items)</option>
+                    <option value="minecraft:stick">minecraft:stick (Tools & Weapons)</option>
+                    <option value="minecraft:feather">minecraft:feather (Lightweight items)</option>
+                    <option value="minecraft:leather_horse_armor">minecraft:leather_horse_armor (3D / Furniture)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Attachable Material</label>
+                  <select 
+                    value={attachableMaterial} 
+                    onChange={(e) => setAttachableMaterial(e.target.value)}
+                    className="w-full bg-dark-surface2 border border-dark-border text-slate-200 rounded-xl p-3 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm"
+                  >
+                    <option value="entity_alphatest">entity_alphatest (Standard Alpha Test - Recommended)</option>
+                    <option value="entity_emissive_alpha">entity_emissive_alpha (Glow / Emissive Effects)</option>
+                    <option value="entity_cutout">entity_cutout (Sharp Cutout)</option>
+                  </select>
+                </div>
+
+                <div className="bg-dark-surface2 border border-dark-border rounded-xl p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider">Output Assets Included</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Bedrock Manifest (`manifest.json`)
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Item Texture Atlas (`textures/item_texture.json`)
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Geyser Custom Items (`geyser_mappings.json`)
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Bedrock Resource Pack (.mcpack structure)
+                    </div>
                   </div>
                 </div>
               </div>
