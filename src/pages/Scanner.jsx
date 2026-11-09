@@ -1,10 +1,11 @@
+import { ToolHeader } from '../components/PackWorkspace';
 import { API_URL, responseError } from '../lib/api';
 import { useState, useRef, useEffect } from 'react';
 
 export default function Scanner({ token }) {
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  
+
   // Options
   const [options, setOptions] = useState({
     minPixel: 1024,
@@ -156,19 +157,13 @@ export default function Scanner({ token }) {
 
   return (
     <div className="w-full flex-1 flex flex-col h-full bg-dark-bg animate-fade-in-up">
-      {/* Header */}
-      <div className="mb-8">
-        <h2 className="page-title">Scanner</h2>
-        <p className="text-slate-400 mt-2 text-sm max-w-xl leading-relaxed">
-          Analyze your texture pack to find giant textures, bloated files, and duplicates before optimizing.
-        </p>
-      </div>
+      <ToolHeader title="Pack inspector" description="Find oversized textures, large files, and duplicate assets before optimizing your pack." meta="READ-ONLY ANALYSIS" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Kolom Kiri: Upload & Config */}
         <div className="lg:col-span-1 flex flex-col gap-6">
-          <div 
+          <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -178,17 +173,17 @@ export default function Scanner({ token }) {
               ${file && status !== 'idle' ? 'opacity-50 pointer-events-none' : ''}
             `}
           >
-            <input 
-              type="file" 
-              accept=".zip" 
+            <input
+              type="file"
+              accept=".zip"
               onChange={handleFileChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
             />
-            
-            <div className="w-16 h-16 bg-dark-bg rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-dark-border">
+
+            <div className="w-16 h-16 bg-dark-bg rounded-lg flex items-center justify-center mb-4 shadow-sm border border-dark-border">
               <svg className={`w-8 h-8 ${isDragging ? 'text-brand-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
             </div>
-            
+
             {file ? (
               <div className="text-center">
                 <p className="text-brand-400 font-semibold mb-1 truncate max-w-[200px]">{file.name}</p>
@@ -203,19 +198,19 @@ export default function Scanner({ token }) {
           </div>
 
           {/* Konfigurasi */}
-          <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 flex flex-col gap-5">
+          <div className="bg-dark-surface border border-dark-border rounded-lg p-6 flex flex-col gap-5">
             <h3 className="text-sm font-semibold text-white tracking-wide uppercase">Parameters</h3>
-            
+
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="text-sm text-slate-300">Min Resolution (px)</label>
                 <span className="text-xs text-brand-400 font-mono">{options.minPixel}px</span>
               </div>
-              <input 
+              <input
                 type="range" min="128" max="4096" step="128"
-                value={options.minPixel} 
+                value={options.minPixel}
                 onChange={(e) => setOptions({...options, minPixel: parseInt(e.target.value)})}
-                className="w-full accent-brand-500 bg-dark-bg rounded-lg h-2 appearance-none" 
+                className="w-full accent-brand-500 bg-dark-bg rounded-lg h-2 appearance-none"
               />
               <p className="text-[10px] text-slate-500 mt-2">Find images larger than {options.minPixel}x{options.minPixel}</p>
             </div>
@@ -225,21 +220,21 @@ export default function Scanner({ token }) {
                 <label className="text-sm text-slate-300">Min File Size (KB)</label>
                 <span className="text-xs text-brand-400 font-mono">{options.minKb} KB</span>
               </div>
-              <input 
+              <input
                 type="range" min="50" max="5000" step="50"
-                value={options.minKb} 
+                value={options.minKb}
                 onChange={(e) => setOptions({...options, minKb: parseInt(e.target.value)})}
-                className="w-full accent-brand-500 bg-dark-bg rounded-lg h-2 appearance-none" 
+                className="w-full accent-brand-500 bg-dark-bg rounded-lg h-2 appearance-none"
               />
               <p className="text-[10px] text-slate-500 mt-2">Find files heavier than {options.minKb} KB</p>
             </div>
           </div>
 
-          <button 
+          <button
             onClick={handleScan}
             disabled={!file || status === 'uploading' || status === 'scanning'}
-            className={`w-full py-4 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2
-              ${!file ? 'bg-dark-surface2 text-slate-500 cursor-not-allowed border border-dark-border' 
+            className={`w-full py-4 rounded-lg font-bold text-sm tracking-wide active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2
+              ${!file ? 'bg-dark-surface2 text-slate-500 cursor-not-allowed border border-dark-border'
                 : status === 'uploading' || status === 'scanning' ? 'bg-brand-500/50 text-white cursor-wait animate-pulse'
                 : 'bg-brand-500 hover:bg-brand-400 text-white shadow-brand-500/20'}`}
           >
@@ -257,7 +252,7 @@ export default function Scanner({ token }) {
               </div>
             ) : 'Scanning pack...'}
           </button>
-          
+
           {errorMsg && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-xs">
               {errorMsg}
@@ -269,21 +264,21 @@ export default function Scanner({ token }) {
         <div className="lg:col-span-2 flex flex-col gap-6">
           {!result && status !== 'scanning' ? (
             <div className="bg-dark-surface border-2 border-dashed border-dark-border rounded-[2rem] p-10 flex flex-col items-center justify-center h-full min-h-[300px] text-center">
-              <div className="w-16 h-16 bg-dark-surface2 border border-dark-border rounded-2xl flex items-center justify-center mb-6">
+              <div className="w-16 h-16 bg-dark-surface2 border border-dark-border rounded-lg flex items-center justify-center mb-6">
                 <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">No data available</h3>
               <p className="text-slate-400 text-sm max-w-sm">Upload a texture pack and click Scan to see the insights here.</p>
             </div>
           ) : status === 'scanning' ? (
-            <div className="bg-dark-surface border border-dark-border rounded-2xl p-10 flex flex-col items-center justify-center h-full">
+            <div className="bg-dark-surface border border-dark-border rounded-lg p-10 flex flex-col items-center justify-center h-full">
               <div className="w-12 h-12 border-4 border-dark-border border-t-brand-500 rounded-full animate-spin mb-4"></div>
               <p className="text-brand-400 font-semibold animate-pulse">Analyzing textures...</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Summary */}
-              <div className="md:col-span-2 bg-gradient-to-br from-dark-surface to-dark-surface2 border border-dark-border rounded-2xl p-6 flex flex-wrap gap-8">
+              <div className="md:col-span-2 bg-gradient-to-br from-dark-surface to-dark-surface2 border border-dark-border rounded-lg p-6 flex flex-wrap gap-8">
                 <div>
                   <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Total size</p>
                   <p className="text-3xl font-black text-white">{formatSize(result.total_size)}</p>
@@ -294,12 +289,12 @@ export default function Scanner({ token }) {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Potential save</p>
-                  <p className="text-3xl font-black text-emerald-400">{formatSize(result.total_waste)}</p>
+                  <p className="text-3xl font-black text-brand-400">{formatSize(result.total_waste)}</p>
                 </div>
               </div>
 
               {/* High-res Textures */}
-              <div className="bg-dark-surface border border-dark-border rounded-2xl flex flex-col overflow-hidden max-h-[350px]">
+              <div className="bg-dark-surface border border-dark-border rounded-lg flex flex-col overflow-hidden max-h-[350px]">
                 <div className="p-4 border-b border-dark-border flex justify-between items-center bg-dark-bg">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg> Giant textures
@@ -307,7 +302,7 @@ export default function Scanner({ token }) {
                   <span className="text-xs bg-dark-surface2 px-2 py-1 rounded text-slate-400">{result.high_res.length}</span>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {result.high_res.length === 0 ? <p className="text-xs text-slate-500">None found.</p> : 
+                  {result.high_res.length === 0 ? <p className="text-xs text-slate-500">None found.</p> :
                     result.high_res.map((img, i) => (
                       <div key={i} className="flex justify-between items-start border-b border-dark-border/50 pb-2 last:border-0 last:pb-0">
                         <p className="text-[11px] text-slate-300 font-mono break-all pr-2">{img.path}</p>
@@ -319,7 +314,7 @@ export default function Scanner({ token }) {
               </div>
 
               {/* Large Files */}
-              <div className="bg-dark-surface border border-dark-border rounded-2xl flex flex-col overflow-hidden max-h-[350px]">
+              <div className="bg-dark-surface border border-dark-border rounded-lg flex flex-col overflow-hidden max-h-[350px]">
                 <div className="p-4 border-b border-dark-border flex justify-between items-center bg-dark-bg">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg> Heavy files
@@ -327,7 +322,7 @@ export default function Scanner({ token }) {
                   <span className="text-xs bg-dark-surface2 px-2 py-1 rounded text-slate-400">{result.large_files.length}</span>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {result.large_files.length === 0 ? <p className="text-xs text-slate-500">None found.</p> : 
+                  {result.large_files.length === 0 ? <p className="text-xs text-slate-500">None found.</p> :
                     result.large_files.map((f, i) => (
                       <div key={i} className="flex justify-between items-start border-b border-dark-border/50 pb-2 last:border-0 last:pb-0">
                         <p className="text-[11px] text-slate-300 font-mono break-all pr-2">{f.path}</p>
@@ -339,7 +334,7 @@ export default function Scanner({ token }) {
               </div>
 
               {/* Duplicates */}
-              <div className="md:col-span-2 bg-dark-surface border border-dark-border rounded-2xl flex flex-col overflow-hidden max-h-[400px]">
+              <div className="md:col-span-2 bg-dark-surface border border-dark-border rounded-lg flex flex-col overflow-hidden max-h-[400px]">
                 <div className="p-4 border-b border-dark-border flex justify-between items-center bg-dark-bg">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg> Duplicates
@@ -347,12 +342,12 @@ export default function Scanner({ token }) {
                   <span className="text-xs bg-dark-surface2 px-2 py-1 rounded text-slate-400">{result.duplicates.length} groups</span>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {result.duplicates.length === 0 ? <p className="text-xs text-slate-500">No duplicates found.</p> : 
+                  {result.duplicates.length === 0 ? <p className="text-xs text-slate-500">No duplicates found.</p> :
                     result.duplicates.map((grp, i) => (
                       <div key={i} className="bg-dark-bg border border-dark-border rounded-xl p-3">
                         <div className="flex justify-between items-center mb-2 pb-2 border-b border-dark-border/50">
                           <p className="text-xs font-semibold text-slate-300">{grp.copies} Copies ({formatSize(grp.size_each)} each)</p>
-                          <span className="text-xs text-emerald-400 font-bold">Save: {formatSize(grp.waste)}</span>
+                          <span className="text-xs text-brand-400 font-bold">Save: {formatSize(grp.waste)}</span>
                         </div>
                         <ul className="list-disc list-inside space-y-1">
                           {grp.paths.map((p, j) => (
@@ -367,7 +362,7 @@ export default function Scanner({ token }) {
 
               {/* Invalid JSON Files */}
               {result.invalid_jsons && result.invalid_jsons.length > 0 && (
-                <div className="md:col-span-2 bg-red-950/20 border border-red-500/20 rounded-2xl flex flex-col overflow-hidden max-h-[300px]">
+                <div className="md:col-span-2 bg-red-950/20 border border-red-500/20 rounded-lg flex flex-col overflow-hidden max-h-[300px]">
                   <div className="p-4 border-b border-red-500/20 flex justify-between items-center bg-red-950/40">
                     <h3 className="text-sm font-bold text-red-400 flex items-center gap-2">
                       <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
@@ -385,7 +380,7 @@ export default function Scanner({ token }) {
                   </div>
                 </div>
               )}
-              
+
             </div>
           )}
         </div>

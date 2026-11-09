@@ -11,7 +11,7 @@ Built with **React 19**, **Vite 8**, and **Tailwind CSS 4**. Resource-pack proce
 - **Texture optimization** with configurable compression, resizing, and cleanup options.
 - **Pack analysis** to identify large textures and inspect asset statistics.
 - **Java version conversion** for supported item-model and pack formats.
-- **Job monitoring** with progress, server logs, connection retries, and session recovery for Bedrock conversions.
+- **Job monitoring** with progress, server logs, connection retries, and reload recovery for optimization, Java version conversion, and Bedrock conversion.
 - **Account screens** for registration, email verification, sign-in, password recovery, and administration.
 
 ## Getting started
@@ -80,6 +80,10 @@ your_pack_bedrock.zip
 ```
 
 Upload limits and account quotas are enforced by the backend. Task progress and downloads require an authenticated session.
+
+Once the server accepts an upload, the browser saves a task checkpoint for that account and tool. Reloading, switching tools, or reopening the browser reconnects to the task and retrieves its latest status. Completed results remain downloadable while the backend retains them; the Tasks page also lists previous jobs. Checkpoints contain task metadata, not the uploaded ZIP or authentication credentials.
+
+Keep the page open while the file is still uploading. An interrupted upload cannot resume automatically. Recovery requires the same browser, site, backend URL, and account with browser storage enabled; clearing site data removes local checkpoints.
 
 ## Production deployment
 

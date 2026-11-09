@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import useBedrockJob from '../hooks/useBedrockJob';
 import { formatBytes } from '../lib/api';
 import { inspectJavaPack } from '../lib/inspectJavaPack';
+import { ToolHeader, JobNotice } from '../components/PackWorkspace';
 
 const paths = {
   upload: 'M12 16V4m-4 4 4-4 4 4M4 16v4h16v-4', arrow: 'M4 12h16m-5-5 5 5-5 5',
@@ -84,26 +85,18 @@ export default function BedrockConverter({ token, user }) {
   const outputs = [...new Set([...(Array.isArray(report?.outputs) && report.outputs.length ? report.outputs : [
     `${packName || job.packName || 'your_pack'}.mcpack`, 'geyser_mappings.json', 'geyser_blocks.json',
   ]), 'conversion_report.json'])];
-  const phase = job.status === 'queued' ? (job.queuePosition > 0 ? `In queue · position ${job.queuePosition}` : 'Waiting for the conversion worker')
+  const phase = job.restoring ? 'Reconnecting to your conversion' : job.status === 'queued' ? (job.queuePosition > 0 ? `In queue · position ${job.queuePosition}` : 'Waiting for the conversion worker')
     : job.status === 'uploading' ? (job.upload === 100 ? 'Upload received · waiting for server' : 'Uploading your Java pack') : 'Converting assets on the server';
   const canConvert = file && inspection && /^[a-zA-Z0-9_-]{1,64}$/.test(packName) && !inspecting;
 
   return <div className="bedrock-workspace animate-fade-in-up pb-8">
-    <header className="bedrock-hero">
-      <div className="relative z-10 max-w-xl">
-        <div className="flex items-center gap-2 mb-5"><span className="w-1.5 h-1.5 rounded-full bg-brand-400" /><span className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-300">Java → Bedrock workspace</span></div>
-        <h1 className="text-3xl sm:text-[40px] font-semibold tracking-[-0.045em] leading-[1.12]">Your pack.<br /><span className="text-brand-300">Across editions.</span></h1>
-        <p className="text-sm text-slate-400 leading-relaxed mt-4 max-w-[440px]">Bring your Java resource pack to Bedrock. Get a resource pack, Geyser item mappings, and a report of what needs a closer look.</p>
-        <div className="flex flex-wrap items-center gap-2 mt-6 text-[10px] font-mono text-slate-400"><span className="bedrock-format">Java .zip</span><Icon name="arrow" className="w-4 h-4 text-slate-600" /><span className="bedrock-format text-brand-300">Bedrock .mcpack</span><span className="text-slate-600">+</span><span className="bedrock-format">Geyser v2 JSON</span></div>
-      </div>
-      <div className="bedrock-cube-scene" aria-hidden="true"><div className="bedrock-orbit" /><div className="bedrock-cube"><span className="bedrock-cube-top" /><span className="bedrock-cube-left" /><span className="bedrock-cube-right" /></div><span className="bedrock-cube-caption">ONE PACK. TWO WORLDS.</span></div>
-    </header>
+    <ToolHeader title="Java → Bedrock" description="Convert a Java resource pack into a Bedrock pack, Geyser mappings, and a report of conversion limits." meta="ZIP → MCPACK + JSON" />
     <ol className="bedrock-workflow" aria-label="Conversion steps">{['Upload & inspect', 'Convert assets', 'Download & install'].map((step, index) => {
       const current = !hasJob ? 0 : job.status === 'done' ? 2 : 1;
       return <li key={step} className={current === index ? 'is-current' : current > index ? 'is-complete' : ''}><span>{current > index ? <Icon name="check" className="w-3 h-3" /> : `0${index + 1}`}</span>{step}</li>;
     })}</ol>
     {(validationError || job.error || downloadError) && <div role="alert" className="mb-5 flex items-start gap-3 rounded-xl border border-red-400/25 bg-red-500/5 p-4 text-sm text-red-300"><Icon name="info" className="w-5 h-5 shrink-0" /><p>{validationError || job.error || downloadError}</p></div>}
-    {job.connectionError && <div role="status" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs text-amber-200"><p className="flex-1 min-w-0">{job.connectionError} Your task is retained.</p><button type="button" onClick={retryConnection} className="font-semibold underline underline-offset-4">Retry now</button></div>}
+    <JobNotice job={job} retryConnection={retryConnection} />
 
     <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,1fr)] gap-5 items-start">
       <div className="min-w-0 space-y-5">
@@ -142,17 +135,17 @@ export default function BedrockConverter({ token, user }) {
             <div className="flex items-center justify-between gap-3 mt-7 text-[11px]"><span className="text-slate-400">{job.status === 'uploading' ? 'Upload progress' : job.total > 0 ? `Server progress · ${job.current} / ${job.total}` : 'Waiting for server progress'}</span><span className="font-mono text-brand-300">{percent !== null ? `${percent}%` : 'In progress'}</span></div>
             <div className="bedrock-progress mt-3" role="progressbar" aria-label="Conversion progress" aria-valuemin={0} aria-valuemax={100} {...(percent !== null ? { 'aria-valuenow': percent } : {})}><span className={percent === null ? 'is-indeterminate' : ''} style={percent !== null ? { width: `${percent}%` } : undefined} /></div>
             {job.eta > 0 && <p className="text-[11px] text-slate-500 mt-3">Server estimate: {job.eta < 60 ? `${job.eta}s` : `${Math.ceil(job.eta / 60)} min`} remaining</p>}
-            <p className="text-[11px] text-slate-500 leading-relaxed mt-5">{job.taskId ? 'You can refresh this page. This browser session will reconnect to your conversion.' : 'Keep this page open until the server accepts your upload.'}</p>
+            <p className="text-xs text-slate-400 leading-relaxed mt-5">{job.taskId ? 'Processing continues on the server. Return to this page to check progress.' : 'Keep this page open until the server accepts your upload.'}</p>
             {job.status === 'uploading' && job.upload < 100 && <button type="button" onClick={reset} className="self-start text-xs text-slate-400 hover:text-white mt-4 underline underline-offset-4">Cancel upload</button>}
           </div>}
           {job.status === 'done' && <div className="p-6 sm:p-7">
-            <div className="flex gap-4 items-start"><span className="flex w-12 h-12 items-center justify-center shrink-0 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-300"><Icon name="check" className="w-6 h-6" /></span><div className="min-w-0"><h3 className="text-xl font-semibold">Ready for the other side.</h3><p className="text-xs text-slate-400 mt-2 leading-relaxed break-words">{job.fileName} has been processed. Review the report, then test the pack in game.</p></div></div>
+            <div className="flex gap-4 items-start"><span className="flex w-12 h-12 items-center justify-center shrink-0 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-300"><Icon name="check" className="w-6 h-6" /></span><div className="min-w-0"><h3 className="text-xl font-semibold">Conversion complete</h3><p className="text-xs text-slate-400 mt-2 leading-relaxed break-words">{job.fileName} has been processed. Review the report, then test the pack in game.</p></div></div>
             <div className="bedrock-stats mt-6">{[[formatBytes(job.originalSize || job.fileSize), 'Source ZIP'], [formatBytes(job.finalSize), 'Output bundle'], [report?.converted_items ?? '—', 'Mapped items']].map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}</div>
             <button type="button" onClick={download} disabled={downloading} className="btn-primary w-full !py-3 mt-6"><Icon name="download" className="w-4 h-4" />{downloading ? 'Preparing download…' : 'Download conversion bundle'}<span className="font-mono text-[10px] opacity-70">.zip</span></button>
             <div className="flex flex-wrap items-center justify-between gap-3 mt-4"><button type="button" onClick={newPack} className="text-xs text-slate-400 hover:text-white">Convert another pack</button>{report && <button type="button" onClick={() => saveJson(report, 'conversion_report.json')} className="text-xs text-brand-300 hover:text-brand-200">Save conversion report</button>}</div>
             <div className="mt-6 border-t border-dark-border pt-5"><h4 className="text-xs font-semibold text-slate-300 mb-3">Fidelity review</h4>{reportWarnings.length ? <WarningList warnings={reportWarnings} /> : <p className="text-xs text-slate-400 leading-relaxed">{report ? 'No additional warnings were returned by the engine. Test model appearance and item predicates in game.' : 'Open conversion_report.json in your bundle to inspect the engine results. This server does not expose an inline report.'}</p>}</div>
           </div>}
-          {job.status === 'error' && <div className="p-6 sm:p-8 min-h-[240px] flex flex-col justify-center"><Icon name="info" className="w-8 h-8 text-red-300 mb-5" /><h3 className="text-xl font-semibold">Let’s get your pack back on track.</h3><p className="text-xs text-slate-400 leading-relaxed mt-3">Check the error above and the conversion logs. Your original Java pack has not been changed.</p><button type="button" onClick={() => { reset(); setActiveTab('output'); }} className="btn-ghost mt-6 self-start">{file ? 'Review settings & retry' : 'Choose a resource pack'}</button></div>}
+          {job.status === 'error' && <div className="p-6 sm:p-8 min-h-[240px] flex flex-col justify-center"><Icon name="info" className="w-8 h-8 text-red-300 mb-5" /><h3 className="text-xl font-semibold">Conversion failed</h3><p className="text-xs text-slate-400 leading-relaxed mt-3">Check the error above and the conversion logs. Your original Java pack has not been changed.</p><button type="button" onClick={() => { reset(); setActiveTab('output'); }} className="btn-ghost mt-6 self-start">{file ? 'Review settings & retry' : 'Choose a resource pack'}</button></div>}
         </section>
         <div className="flex items-start gap-3 px-1"><Icon name="info" className="w-4 h-4 mt-0.5 shrink-0 text-slate-500" /><p className="text-[11px] leading-relaxed text-slate-500">Designed to preserve your pack’s look where the formats allow. Java shaders, client mods, and server plugin behavior cannot be reproduced from a resource pack alone. Complex item predicates may use fallbacks; always review the report.</p></div>
       </div>

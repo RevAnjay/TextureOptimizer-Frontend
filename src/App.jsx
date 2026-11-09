@@ -63,6 +63,11 @@ function App() {
   const [sessionAttempt, setSessionAttempt] = useState(0)
   const [resetEmail, setResetEmail] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const mainRef = useRef(null);
+
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [currentPage]);
 
   const setCurrentPage = useCallback((pageOrFn) => {
     const nextPage = typeof pageOrFn === 'function' ? pageOrFn(currentPageRef.current) : pageOrFn;
@@ -249,8 +254,7 @@ function App() {
       />
 
       {/* Main */}
-      <main className="flex-1 overflow-y-auto relative">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-brand-500/[0.04] to-transparent" />
+      <main ref={mainRef} className="flex-1 overflow-y-auto relative min-w-0" id="main-content">
 
         {showProfile && (
           <ProfileModal user={user} onClose={() => setShowProfile(false)} onLogout={handleLogout} />
@@ -258,7 +262,7 @@ function App() {
 
         <div className="relative max-w-6xl mx-auto px-4 py-5 sm:px-6 md:px-8 md:py-7">
           {/* Desktop breadcrumb */}
-          <div className="hidden md:flex items-center gap-2 mb-5 text-[11px] font-medium">
+          <div className="hidden md:flex items-center gap-2 mb-5 pb-5 border-b border-dark-border text-xs font-medium">
             <span className="text-slate-600">ConvertTexture</span>
             <svg className="w-3 h-3 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
@@ -270,7 +274,7 @@ function App() {
             <span className="text-slate-400">{pageMeta.title}</span>
           </div>
 
-          <div className="h-full flex flex-col">
+          <div key={user.username} className="h-full flex flex-col">
             {currentPage === 'admin' ? (
               <Admin token={token} navigateTo={setCurrentPage} />
             ) : currentPage === 'scanner' ? (

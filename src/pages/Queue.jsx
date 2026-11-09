@@ -1,4 +1,5 @@
-import { API_URL, responseError } from '../lib/api';
+import { API_URL, responseError, downloadTask } from '../lib/api';
+import { ToolHeader } from '../components/PackWorkspace';
 import React, { useState, useEffect, useRef } from 'react';
 
 const Queue = ({ token }) => {
@@ -9,6 +10,20 @@ const Queue = ({ token }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const logsEndRefs = useRef({});
+  const downloadRef = useRef(null);
+  const [downloadingTask, setDownloadingTask] = useState(null);
+  const [downloadError, setDownloadError] = useState('');
+  useEffect(() => () => { downloadRef.current?.abort(); downloadRef.current = null; }, [token]);
+  async function download(taskId) {
+    if (downloadRef.current) return;
+    const controller = new AbortController();
+    downloadRef.current = controller;
+    setDownloadingTask(taskId);
+    setDownloadError('');
+    try { await downloadTask(taskId, token, undefined, controller.signal); }
+    catch (error) { if (!controller.signal.aborted) setDownloadError(error.message); }
+    finally { if (downloadRef.current === controller) { downloadRef.current = null; setDownloadingTask(null); } }
+  }
 
   useEffect(() => {
     let stopped = false;
@@ -89,7 +104,7 @@ const Queue = ({ token }) => {
       case 'scanning':
         return { label: 'Scanning', color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', dot: 'bg-violet-400', pulse: true };
       case 'done':
-        return { label: 'Complete', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', dot: 'bg-emerald-400', pulse: false };
+        return { label: 'Complete', color: 'text-brand-400', bg: 'bg-brand-500/10', border: 'border-brand-500/20', dot: 'bg-brand-400', pulse: false };
       case 'error':
         return { label: 'Failed', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', dot: 'bg-red-400', pulse: false };
       default:
@@ -128,68 +143,9 @@ const Queue = ({ token }) => {
 
   return (
     <>
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <h2 className="page-title">Queue monitor</h2>
-          {totalTasks > 0 && (
-            <span className="px-2.5 py-1 text-xs font-bold bg-brand-500/15 text-brand-400 rounded-lg border border-brand-500/20">
-              {totalTasks} task{totalTasks !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-        <p className="text-slate-400 text-sm">Real-time overview of the tasks available to your account.</p>
-      </div>
-
-      {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-5 group hover:border-dark-borderHover transition-colors">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 bg-slate-800 rounded-xl flex items-center justify-center">
-              <svg className="w-4.5 h-4.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-              </svg>
-            </div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</span>
-          </div>
-          <p className="text-3xl font-bold text-white">{totalTasks}</p>
-        </div>
-
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-5 group hover:border-dark-borderHover transition-colors">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 bg-blue-500/10 rounded-xl flex items-center justify-center">
-              <svg className="w-4.5 h-4.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-              </svg>
-            </div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active</span>
-          </div>
-          <p className="text-3xl font-bold text-blue-400">{processingCount}</p>
-        </div>
-
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-5 group hover:border-dark-borderHover transition-colors">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 bg-amber-500/10 rounded-xl flex items-center justify-center">
-              <svg className="w-4.5 h-4.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Queued</span>
-          </div>
-          <p className="text-3xl font-bold text-amber-400">{queuedCount}</p>
-        </div>
-
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-5 group hover:border-dark-borderHover transition-colors">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 bg-emerald-500/10 rounded-xl flex items-center justify-center">
-              <svg className="w-4.5 h-4.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 13l4 4L19 7"></path>
-              </svg>
-            </div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Done</span>
-          </div>
-          <p className="text-3xl font-bold text-emerald-400">{doneCount}</p>
-        </div>
-      </div>
+      <ToolHeader title="Tasks" description="Follow your processing jobs and download completed packs." meta="LIVE SERVER STATUS" />
+      <div className="queue-summary">{[[totalTasks, 'Total'], [processingCount, 'Processing'], [queuedCount, 'Queued'], [doneCount, 'Completed'], [errorCount, 'Failed']].map(([value, label]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>
+      {downloadError && <p role="alert" className="job-notice is-warning">{downloadError}</p>}
 
       {/* Task List */}
       <div className="flex flex-col gap-4 flex-1">
@@ -197,9 +153,9 @@ const Queue = ({ token }) => {
           /* Skeleton Loading */
           <div className="flex flex-col gap-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-dark-surface border border-dark-border rounded-2xl p-6 animate-pulse">
+              <div key={i} className="bg-dark-surface border border-dark-border rounded-lg p-6 animate-pulse">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-dark-surface2 rounded-xl"></div>
+                  <div className="w-10 h-10 bg-dark-surface2 rounded-lg"></div>
                   <div className="flex-1">
                     <div className="h-4 bg-dark-surface2 rounded w-48 mb-2"></div>
                     <div className="h-3 bg-dark-surface2 rounded w-32"></div>
@@ -211,15 +167,15 @@ const Queue = ({ token }) => {
           </div>
         ) : error ? (
           /* Error State */
-          <div className="bg-dark-surface border border-dark-border rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
-            <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-center mb-6">
+          <div className="bg-dark-surface border border-dark-border rounded-lg p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
+            <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex items-center justify-center mb-6">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <h3 className="text-xl font-bold text-white mb-2">Unable to load tasks</h3>
             <p className="text-slate-400 text-sm max-w-sm mb-6">
               {error}
             </p>
-            <button 
+            <button
               onClick={() => { setIsLoading(true); setAttempt(value => value + 1); }}
               className="px-6 py-2.5 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg text-sm transition-colors"
             >
@@ -228,8 +184,8 @@ const Queue = ({ token }) => {
           </div>
         ) : sortedTasks.length === 0 ? (
           /* Empty State */
-          <div className="bg-dark-surface border-2 border-dashed border-dark-border rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
-            <div className="w-16 h-16 bg-dark-surface2 border border-dark-border rounded-2xl flex items-center justify-center mb-6">
+          <div className="bg-dark-surface border-2 border-dashed border-dark-border rounded-lg p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
+            <div className="w-16 h-16 bg-dark-surface2 border border-dark-border rounded-lg flex items-center justify-center mb-6">
               <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
               </svg>
@@ -251,7 +207,7 @@ const Queue = ({ token }) => {
             const percentage = task.total > 0 ? Math.round((task.current / task.total) * 100) : 0;
             const hasLogs = task.logs && task.logs.length > 0;
             const isActive = task.status === 'processing' || task.status === 'scanning' || task.status === 'uploading';
-            
+
             // Calculate reduction percentage for done tasks
             const reduction = task.status === 'done' && task.original_size && task.final_size
               ? Math.round(((task.original_size - task.final_size) / task.original_size) * 100)
@@ -260,25 +216,27 @@ const Queue = ({ token }) => {
             return (
               <div
                 key={taskId}
-                className={`bg-dark-surface border rounded-2xl overflow-hidden transition-all duration-300 ${
+                className={`bg-dark-surface border rounded-lg overflow-hidden transition-all duration-300 ${
                   isActive ? 'border-dark-borderHover' : 'border-dark-border'
                 } hover:border-dark-borderHover`}
               >
                 {/* Main Card Content */}
                 <div
-                  className="p-5 cursor-pointer"
+                  className="p-5 cursor-pointer outline-offset-[-3px]"
+                  role="button" tabIndex={0} aria-expanded={isExpanded}
+                  onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setExpandedTask(isExpanded ? null : taskId); } }}
                   onClick={() => setExpandedTask(isExpanded ? null : taskId)}
                 >
                   <div className="flex items-center gap-4">
                     {/* Status Icon */}
-                    <div className={`w-10 h-10 ${cfg.bg} border ${cfg.border} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                    <div className={`w-10 h-10 ${cfg.bg} border ${cfg.border} rounded-lg flex items-center justify-center flex-shrink-0`}>
                       {isActive ? (
                         <div className="relative w-5 h-5">
                           <div className={`absolute inset-0 border-2 ${cfg.border} rounded-full`}></div>
                           <div className={`absolute inset-0 border-2 ${cfg.color.replace('text-', 'border-')} border-t-transparent rounded-full animate-spin`}></div>
                         </div>
                       ) : task.status === 'done' ? (
-                        <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                         </svg>
                       ) : task.status === 'error' ? (
@@ -360,7 +318,7 @@ const Queue = ({ token }) => {
                       </div>
                       <div className="w-full h-1 bg-dark-surface2 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-brand-600 to-brand-400 rounded-full transition-all duration-500 ease-out"
+                          className="h-full bg-brand-400 rounded-full transition-all duration-500 ease-out"
                           style={{ width: `${percentage}%` }}
                         ></div>
                       </div>
@@ -387,7 +345,7 @@ const Queue = ({ token }) => {
                             <p className="text-sm font-semibold text-slate-300">{formatSize(task.original_size)}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Optimized</p>
+                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Output</p>
                             <p className="text-sm font-semibold text-brand-400">{formatSize(task.final_size)}</p>
                           </div>
                           <div>
@@ -400,6 +358,7 @@ const Queue = ({ token }) => {
                       </div>
                     )}
 
+                    {task.status === 'done' && <div className="px-5 py-4 border-b border-dark-border"><button type="button" className="btn-ghost text-xs" disabled={!!downloadingTask} onClick={() => download(taskId)}>{downloadingTask === taskId ? 'Preparing download…' : 'Download result'}</button></div>}
                     {/* Logs Terminal */}
                     <div className="bg-dark-bg p-4 max-h-[250px] overflow-y-auto">
                       <div className="flex gap-1.5 mb-3 items-center">
@@ -408,7 +367,7 @@ const Queue = ({ token }) => {
                         <div className="w-2 h-2 rounded-full bg-slate-700"></div>
                         <span className="text-[9px] text-slate-600 ml-1.5 font-mono">task.log — {truncateId(taskId)}</span>
                       </div>
-                      
+
                       <div className="font-mono text-[11px] leading-relaxed">
                         {!hasLogs ? (
                           <span className="text-slate-600 italic">No logs available yet...</span>
