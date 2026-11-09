@@ -1,37 +1,64 @@
+import { API_URL, responseError } from '../lib/api';
 import React, { useState, useEffect, useRef } from 'react';
 
 const Queue = ({ token }) => {
   const [tasks, setTasks] = useState({});
+  const [taskToken, setTaskToken] = useState(token);
+  const [attempt, setAttempt] = useState(0);
   const [expandedTask, setExpandedTask] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const logsEndRefs = useRef({});
 
-  const fetchTasks = async () => {
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/debug`);
-      if (!res.ok) throw new Error(`Server returned status ${res.status}`);
-      const contentType = res.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server returned invalid content type (non-JSON)');
-      }
-      const data = await res.json();
-      setTasks(data);
-      setError(null);
-    } catch (err) {
-      console.error('Queue polling error:', err);
-      setError(err.message || 'Cannot connect to API server');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Polling /debug every 2 seconds
   useEffect(() => {
-    fetchTasks();
-    const interval = setInterval(fetchTasks, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    let stopped = false;
+    let timer;
+    let request;
+    let failures = 0;
+    setTasks({});
+    setTaskToken(token);
+    setExpandedTask(null);
+    setIsLoading(true);
+    setError(null);
+    async function poll() {
+      if (!token) { setError('Sign in to view your tasks.'); setIsLoading(false); return; }
+      request = new AbortController();
+      const timeout = setTimeout(() => request.abort(),15000);
+      let delay = 2000;
+      let finished = false;
+      try {
+        const response = await fetch(`${API_URL}/tasks`, {
+          headers: { Authorization: `Bearer ${token}` }, signal: request.signal,
+        });
+        if (stopped) return;
+        if (!response.ok) {
+          finished = [401,403,404].includes(response.status);
+          throw new Error(await responseError(response,'Could not load your tasks.'));
+        }
+        const data = await response.json();
+        if (stopped) return;
+        if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('The server returned an unreadable task list.');
+        failures = 0;
+        setTasks(data);
+        setTaskToken(token);
+        setError(null);
+      } catch (error) {
+        if (stopped) return;
+        setError(error.name === 'AbortError' ? 'Task request timed out. Reconnecting automatically…' : error.message);
+        if (finished) setTasks({});
+        failures++;
+        delay = Math.min(15000,2000 * 2 ** Math.min(failures,3));
+      } finally {
+        clearTimeout(timeout);
+        if (!stopped) {
+          setIsLoading(false);
+          if (!finished) timer = setTimeout(poll,delay);
+        }
+      }
+    }
+    poll();
+    return () => { stopped = true; clearTimeout(timer); request?.abort(); };
+  }, [token,attempt]);
 
   // Auto-scroll expanded logs
   useEffect(() => {
@@ -40,7 +67,7 @@ const Queue = ({ token }) => {
     }
   }, [tasks, expandedTask]);
 
-  const taskEntries = Object.entries(tasks).filter(
+  const taskEntries = Object.entries(taskToken === token ? tasks : {}).filter(
     ([key, val]) => typeof val === 'object' && val !== null && val.status
   );
 
@@ -103,14 +130,14 @@ const Queue = ({ token }) => {
     <>
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <h2 className="text-3xl font-bold text-white tracking-tight">Queue monitor</h2>
+          <h2 className="page-title">Queue monitor</h2>
           {totalTasks > 0 && (
             <span className="px-2.5 py-1 text-xs font-bold bg-brand-500/15 text-brand-400 rounded-lg border border-brand-500/20">
               {totalTasks} task{totalTasks !== 1 ? 's' : ''}
             </span>
           )}
         </div>
-        <p className="text-slate-400 text-sm">Real-time overview of all server tasks and their processing status.</p>
+        <p className="text-slate-400 text-sm">Real-time overview of the tasks available to your account.</p>
       </div>
 
       {/* Stats Bar */}
@@ -188,12 +215,12 @@ const Queue = ({ token }) => {
             <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-center mb-6">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Connection error</h3>
+            <h3 className="text-xl font-bold text-white mb-2">Unable to load tasks</h3>
             <p className="text-slate-400 text-sm max-w-sm mb-6">
-              {error}. Please verify that the API backend is running.
+              {error}
             </p>
             <button 
-              onClick={() => { setIsLoading(true); fetchTasks(); }}
+              onClick={() => { setIsLoading(true); setAttempt(value => value + 1); }}
               className="px-6 py-2.5 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg text-sm transition-colors"
             >
               Retry connection
@@ -414,7 +441,7 @@ const Queue = ({ token }) => {
         {!isLoading && sortedTasks.length > 0 && (
           <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-600">
             <div className="w-1.5 h-1.5 bg-brand-500 rounded-full animate-pulse"></div>
-            <span>Auto-refreshing every 2 seconds</span>
+            <span>Refreshing automatically</span>
           </div>
         )}
       </div>

@@ -1,3 +1,4 @@
+import { API_URL, responseError } from '../lib/api';
 import { useState, useRef, useEffect } from 'react';
 
 export default function Scanner({ token }) {
@@ -67,7 +68,7 @@ export default function Scanner({ token }) {
     formData.append('minKb', options.minKb.toString());
 
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${import.meta.env.VITE_API_URL}/scan`);
+    xhr.open('POST', `${API_URL}/scan`);
     xhr.setRequestHeader('Authorization', `Bearer ${token}`);
 
     xhr.upload.onprogress = (e) => {
@@ -101,41 +102,63 @@ export default function Scanner({ token }) {
     xhr.send(formData);
   };
 
-  // Polling Effect
+  // Only one authenticated status request is active at a time.
   useEffect(() => {
-    let interval;
-    if (status === 'scanning' && taskId) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/status/${taskId}`);
-          const data = await res.json();
-          
-          if (data.error) throw new Error(data.error);
-          
-          if (data.status === 'done') {
-            setResult(data.result);
-            setStatus('done');
-            clearInterval(interval);
-          } else if (data.status === 'error') {
-            setStatus('error');
-            setErrorMsg(data.error_msg);
-            clearInterval(interval);
-          }
-        } catch (err) {
-          setStatus('error');
-          setErrorMsg(err.message);
-          clearInterval(interval);
+    if (status !== 'scanning' || !taskId) return;
+    let stopped = false;
+    let timer;
+    let request;
+    let failures = 0;
+    async function poll() {
+      request = new AbortController();
+      const timeout = setTimeout(() => request.abort(), 15000);
+      let finished = false;
+      let delay = 1000;
+      try {
+        const res = await fetch(`${API_URL}/status/${encodeURIComponent(taskId)}`, {
+          headers: { Authorization: `Bearer ${token}` }, signal: request.signal,
+        });
+        if (stopped) return;
+        if (!res.ok) {
+          finished = [401,403,404,410].includes(res.status);
+          throw new Error(await responseError(res, 'Could not retrieve this task.'));
         }
-      }, 1000);
+        const data = await res.json();
+        if (stopped) return;
+        if (data.error) { finished = true; throw new Error(data.error); }
+        failures = 0;
+        setErrorMsg(null);
+        if (data.status === 'done') {
+          setResult(data.result);
+          setStatus('done');
+          finished = true;
+        } else if (data.status === 'error') {
+          setStatus('error');
+          setErrorMsg(data.error_msg || 'The task failed.');
+          finished = true;
+        }
+      } catch (error) {
+        if (stopped) return;
+        if (finished) { setStatus('error'); setErrorMsg(error.message); }
+        else {
+          failures++;
+          delay = Math.min(15000, 1000 * 2 ** Math.min(failures,4));
+          setErrorMsg(`${error.name === 'AbortError' ? 'The status request timed out.' : error.message} Reconnecting automatically…`);
+        }
+      } finally {
+        clearTimeout(timeout);
+        if (!stopped && !finished) timer = setTimeout(poll,delay);
+      }
     }
-    return () => { if (interval) clearInterval(interval); };
-  }, [status, taskId]);
+    poll();
+    return () => { stopped = true; clearTimeout(timer); request?.abort(); };
+  }, [status,taskId,token]);
 
   return (
     <div className="w-full flex-1 flex flex-col h-full bg-dark-bg animate-fade-in-up">
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white tracking-tight">Scanner</h2>
+        <h2 className="page-title">Scanner</h2>
         <p className="text-slate-400 mt-2 text-sm max-w-xl leading-relaxed">
           Analyze your texture pack to find giant textures, bloated files, and duplicates before optimizing.
         </p>

@@ -1,3 +1,4 @@
+import { API_URL, responseError, downloadTask } from '../lib/api';
 import { useState, useRef, useEffect } from 'react';
 
 const Optimizer = ({ token, user }) => {
@@ -56,6 +57,8 @@ const Optimizer = ({ token, user }) => {
   const [sizes, setSizes] = useState({ original: 0, final: 0 });
   const [errorMsg, setErrorMsg] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const downloadRef = useRef(null);
 
   const fileInputRef = useRef(null);
   const logsEndRef = useRef(null);
@@ -91,6 +94,10 @@ const Optimizer = ({ token, user }) => {
   };
 
   const resetState = () => {
+    const download = downloadRef.current;
+    downloadRef.current = null;
+    download?.abort();
+    setIsDownloading(false);
     setStatus('idle');
     setTaskId(null);
     setErrorMsg(null);
@@ -125,7 +132,7 @@ const Optimizer = ({ token, user }) => {
     });
 
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${import.meta.env.VITE_API_URL}/upload`);
+    xhr.open('POST', `${API_URL}/upload`);
     xhr.setRequestHeader('Authorization', `Bearer ${token}`);
 
     xhr.upload.onprogress = (e) => {
@@ -159,41 +166,60 @@ const Optimizer = ({ token, user }) => {
     xhr.send(formData);
   };
 
-  // Polling Effect
+  // Only one authenticated status request is active at a time.
   useEffect(() => {
-    let interval;
-    if (status === 'processing' && taskId) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/status/${taskId}`);
-          const data = await res.json();
-          
-          if (data.error) throw new Error(data.error);
-          
-          setLogs(data.logs || []);
-          
-          if (data.status === 'done') {
-            setSizes({ original: data.original_size, final: data.final_size });
-            setStatus('done');
-            clearInterval(interval);
-          } else if (data.status === 'error') {
-            setStatus('error');
-            setErrorMsg(data.error_msg);
-            clearInterval(interval);
-          } else {
-            setProgress({
-              current: data.current,
-              total: data.total,
-              eta: data.eta
-            });
-          }
-        } catch (err) {
-          console.error("Polling error", err);
+    if (status !== 'processing' || !taskId) return;
+    let stopped = false;
+    let timer;
+    let request;
+    let failures = 0;
+    async function poll() {
+      request = new AbortController();
+      const timeout = setTimeout(() => request.abort(), 15000);
+      let finished = false;
+      let delay = 1000;
+      try {
+        const res = await fetch(`${API_URL}/status/${encodeURIComponent(taskId)}`, {
+          headers: { Authorization: `Bearer ${token}` }, signal: request.signal,
+        });
+        if (stopped) return;
+        if (!res.ok) {
+          finished = [401,403,404,410].includes(res.status);
+          throw new Error(await responseError(res, 'Could not retrieve this task.'));
         }
-      }, 1000);
+        const data = await res.json();
+        if (stopped) return;
+        if (data.error) { finished = true; throw new Error(data.error); }
+        failures = 0;
+        setErrorMsg(null);
+        setLogs(Array.isArray(data.logs) ? data.logs : []);
+        if (data.status === 'done') {
+          setSizes({ original: data.original_size, final: data.final_size });
+          setStatus('done');
+          finished = true;
+        } else if (data.status === 'error') {
+          setStatus('error');
+          setErrorMsg(data.error_msg || 'The task failed.');
+          finished = true;
+        } else {
+          setProgress({ current: data.current, total: data.total, eta: data.eta });
+        }
+      } catch (error) {
+        if (stopped) return;
+        if (finished) { setStatus('error'); setErrorMsg(error.message); }
+        else {
+          failures++;
+          delay = Math.min(15000, 1000 * 2 ** Math.min(failures,4));
+          setErrorMsg(`${error.name === 'AbortError' ? 'The status request timed out.' : error.message} Reconnecting automatically…`);
+        }
+      } finally {
+        clearTimeout(timeout);
+        if (!stopped && !finished) timer = setTimeout(poll,delay);
+      }
     }
-    return () => clearInterval(interval);
-  }, [status, taskId]);
+    poll();
+    return () => { stopped = true; clearTimeout(timer); request?.abort(); };
+  }, [status,taskId,token]);
 
   // Auto-scroll logs
   useEffect(() => {
@@ -202,8 +228,29 @@ const Optimizer = ({ token, user }) => {
     }
   }, [logs]);
 
-  const handleDownload = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/download/${taskId}`;
+  useEffect(() => () => {
+    const download = downloadRef.current;
+    downloadRef.current = null;
+    download?.abort();
+  }, [token]);
+
+  const handleDownload = async () => {
+    if (!taskId || status !== 'done' || downloadRef.current) return;
+    const controller = new AbortController();
+    downloadRef.current = controller;
+    setIsDownloading(true);
+    setErrorMsg(null);
+    try {
+      const filename = `${(file?.name || 'resource_pack').replace(/\.zip$/i, '')}_optimized.zip`;
+      await downloadTask(taskId, token, filename, controller.signal);
+    } catch (error) {
+      if (downloadRef.current === controller && error.name !== 'AbortError') setErrorMsg(error.message);
+    } finally {
+      if (downloadRef.current === controller) {
+        downloadRef.current = null;
+        setIsDownloading(false);
+      }
+    }
   };
 
   // Format Helpers
@@ -231,9 +278,16 @@ const Optimizer = ({ token, user }) => {
       )}
 
       {/* Header Title */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white tracking-tight mb-2">Workspace</h2>
-        <p className="text-slate-400 text-sm">Optimize and compress your texture packs efficiently.</p>
+      <div className="mb-8 animate-fade-in">
+        <div className="flex items-center gap-2.5 mb-2">
+          <span className="badge-brand">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse"></span>
+            Core Engine
+          </span>
+          <span className="text-xs text-slate-500 font-mono">Pack Optimizer</span>
+        </div>
+        <h2 className="page-title">Texture Optimizer</h2>
+        <p className="page-subtitle mt-1">Compress textures, consolidate duplicate assets, and strip dead files for peak Minecraft FPS.</p>
       </div>
 
       {/* Bento Grid Layout */}
@@ -245,103 +299,177 @@ const Optimizer = ({ token, user }) => {
           {/* Upload Box (Hanya tampil jika file belum ada) */}
           {!file && status === 'idle' && (
             <div 
-              className={`w-full min-h-[300px] bg-dark-surface border border-dark-border border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-all ${
-                isDragging ? 'border-brand-500 bg-brand-900/10' : 'hover:border-dark-borderHover hover:bg-dark-surface2'
+              className={`relative overflow-hidden w-full min-h-[340px] card border-2 border-dashed p-10 flex flex-col items-center justify-center text-center transition-all duration-300 cursor-pointer group ${
+                isDragging ? 'border-brand-500 bg-brand-500/10 scale-[0.99]' : 'border-dark-border hover:border-dark-borderHover hover:bg-dark-surface2/60'
               }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
             >
-              <div className="w-16 h-16 bg-dark-surface2 border border-dark-border rounded-2xl flex items-center justify-center mb-6">
-                <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+              {/* Background ambient decoration */}
+              <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none"></div>
+              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              <div className="relative w-16 h-16 rounded-2xl bg-dark-surface2 border border-dark-border flex items-center justify-center mb-5 group-hover:border-brand-500/50 group-hover:shadow-[0_0_24px_rgba(16,185,129,0.25)] transition-all duration-300">
+                <svg className="w-8 h-8 text-brand-400 transition-transform duration-300 group-hover:-translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
               </div>
-              <p className="text-xl font-semibold text-white mb-2">Select a .zip file to optimize</p>
-              <p className="text-slate-500 text-sm mb-6 text-center max-w-sm">Drag and drop your Minecraft resource pack here, or click to browse files.</p>
-              
+
+              <h3 className="relative text-xl font-bold text-white mb-2 tracking-tight">Select a .zip file to optimize</h3>
+              <p className="relative text-slate-400 text-sm mb-6 max-w-sm leading-relaxed">
+                Drag and drop your Minecraft resource pack here, or click to choose from your device.
+              </p>
+
+              <div className="relative flex items-center gap-3">
+                <button 
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                  className="btn-white"
+                >
+                  <svg className="w-4 h-4 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Browse Files
+                </button>
+                <span className="badge-neutral font-mono">.ZIP ONLY</span>
+              </div>
+
               <input type="file" accept=".zip" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-              <button onClick={() => fileInputRef.current.click()} className="px-6 py-2.5 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all text-sm">
-                Browse Files
-              </button>
+              
+              <div className="relative mt-8 pt-6 border-t border-dark-border/60 flex items-center gap-6 text-xs text-slate-500">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  Lossless &amp; Lossy PNG
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                  OGG audio compression
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                  {user?.tier === 'premium' ? 'Max 100MB (Premium)' : 'Max 30MB (Free)'}
+                </span>
+              </div>
             </div>
           )}
 
           {/* File Selected & Process UI */}
           {file && status === 'idle' && (
-            <div className="bg-dark-surface border border-dark-border rounded-2xl p-6">
-              <div className="flex justify-between items-start mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-dark-surface2 border border-dark-border rounded-xl flex items-center justify-center">
-                    <svg className="w-6 h-6 text-brand-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"></path></svg>
+            <div className="card p-6 md:p-8 animate-scale-in">
+              {/* Selected File Banner */}
+              <div className="panel-inset p-4 flex items-center justify-between mb-7">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-12 h-12 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center flex-shrink-0 text-brand-400">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                    </svg>
                   </div>
-                  <div>
-                    <p className="font-semibold text-white truncate max-w-[200px] sm:max-w-sm">{file.name}</p>
-                    <p className="text-xs text-slate-500">{formatSize(file.size)}</p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-white truncate max-w-[240px] sm:max-w-md">{file.name}</p>
+                      <span className="badge-brand text-[10px]">Ready</span>
+                    </div>
+                    <p className="text-xs text-slate-400 font-mono mt-0.5">{formatSize(file.size)}</p>
                   </div>
                 </div>
-                <button onClick={() => setFile(null)} className="text-slate-500 hover:text-white transition-colors p-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button 
+                  onClick={() => setFile(null)} 
+                  className="btn-ghost p-2 rounded-xl text-slate-400 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                  title="Remove file"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
 
-              <div className="mb-6">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Optimization Profile</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(templates).map(([key, tpl]) => (
-                    <button 
-                      key={key}
-                      onClick={() => applyTemplate(key)}
-                      className={`p-3 text-left rounded-xl border transition-all text-sm active:scale-[0.98] ${
-                        activeTemplate === key 
-                        ? 'border-brand-500 bg-brand-500/10 text-brand-400' 
-                        : 'border-dark-border bg-dark-surface2 hover:border-dark-borderHover text-slate-300'
-                      }`}
-                    >
-                      <p className="font-semibold mb-1">{tpl.name}</p>
-                      <p className="text-xs text-slate-500 line-clamp-2">{tpl.desc}</p>
-                    </button>
-                  ))}
+              {/* Profiles */}
+              <div className="mb-7">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="section-title">Optimization Profile</label>
+                  <span className="text-xs text-slate-500">Pick a preset or tune manually</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {Object.entries(templates).map(([key, tpl]) => {
+                    const isActive = activeTemplate === key;
+                    return (
+                      <button 
+                        key={key}
+                        onClick={() => applyTemplate(key)}
+                        className={`p-4 text-left rounded-xl border transition-all text-sm relative group cursor-pointer ${
+                          isActive 
+                            ? 'border-brand-500 bg-brand-500/10 text-white shadow-[0_0_20px_rgba(16,185,129,0.15)] ring-1 ring-brand-500/40' 
+                            : 'border-dark-border bg-dark-surface2/60 hover:border-dark-borderHover hover:bg-dark-surface2 text-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <p className={`font-semibold ${isActive ? 'text-brand-300' : 'text-white'}`}>{tpl.name}</p>
+                          {isActive && (
+                            <span className="w-2 h-2 rounded-full bg-brand-400"></span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{tpl.desc}</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              <button onClick={handleOptimize} className="w-full py-3.5 bg-brand-600 hover:bg-brand-500 active:scale-[0.98] text-white font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                Start Processing
+              {/* Action Button */}
+              <button 
+                onClick={handleOptimize} 
+                className="btn-primary w-full py-3.5 text-base shadow-lg cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Start Optimization Pipeline
               </button>
             </div>
           )}
 
           {/* Processing Status */}
           {(status === 'uploading' || status === 'processing') && (
-            <div className="bg-dark-surface border border-dark-border rounded-2xl p-8 flex flex-col items-center justify-center text-center min-h-[400px]">
-              <div className="relative w-16 h-16 mb-6">
-                <div className="absolute inset-0 border-2 border-dark-border rounded-full"></div>
-                <div className="absolute inset-0 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="card p-8 md:p-10 flex flex-col items-center justify-center text-center min-h-[380px] animate-scale-in">
+              <div className="relative w-20 h-20 mb-7">
+                <div className="absolute inset-0 border-3 border-dark-border rounded-full"></div>
+                <div className="absolute inset-0 border-3 border-brand-400 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-2 bg-brand-500/10 rounded-full flex items-center justify-center text-brand-400 font-mono text-xs font-bold">
+                  {status === 'uploading' ? `${uploadProgress}%` : `${percentage}%`}
+                </div>
               </div>
               
               {status === 'uploading' ? (
                 <div className="w-full max-w-md">
-                  <h3 className="text-xl font-bold text-white mb-2">Uploading Resource Pack...</h3>
-                  <p className="text-slate-400 text-xs mb-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/25 text-sky-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+                    Step 1 / 2 : Upload
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Uploading Resource Pack...</h3>
+                  <p className="text-slate-400 text-xs mb-5 font-mono">
                     {((file?.size || 0) * uploadProgress / 100 / (1024 * 1024)).toFixed(1)} MB / {formatSize(file?.size)}
                   </p>
-                  <div className="flex justify-between text-xs font-semibold text-brand-400 mb-2">
-                    <span>Uploading to server</span>
-                    <span>{uploadProgress}%</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-dark-surface2 rounded-full overflow-hidden border border-dark-border">
-                    <div className="h-full bg-gradient-to-r from-brand-600 to-brand-400 transition-all duration-200 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
+                  <div className="w-full h-2.5 bg-dark-surface2 rounded-full overflow-hidden border border-dark-border p-0.5">
+                    <div className="h-full bg-gradient-to-r from-brand-500 to-brand-300 transition-all duration-200 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.5)]" style={{ width: `${uploadProgress}%` }}></div>
                   </div>
                 </div>
               ) : (
                 <div className="w-full max-w-md">
-                  <h3 className="text-xl font-bold text-white mb-2">Optimizing Pack...</h3>
-                  <div className="flex justify-between text-xs font-medium text-slate-400 mb-2">
-                    <span>{percentage}%</span>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/25 text-brand-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse"></span>
+                    Step 2 / 2 : Optimization Engine
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Compressing &amp; Optimizing...</h3>
+                  <div className="flex justify-between text-xs font-semibold text-slate-400 mb-2 font-mono">
+                    <span>{percentage}% complete</span>
                     <span>{formatTime(progress.eta)} remaining</span>
                   </div>
-                  <div className="w-full h-2.5 bg-dark-surface2 rounded-full overflow-hidden border border-dark-border">
-                    <div className="h-full bg-gradient-to-r from-brand-600 to-brand-400 transition-all duration-300 rounded-full" style={{ width: `${percentage}%` }}></div>
+                  <div className="w-full h-2.5 bg-dark-surface2 rounded-full overflow-hidden border border-dark-border p-0.5">
+                    <div className="h-full bg-gradient-to-r from-brand-600 via-brand-400 to-emerald-300 transition-all duration-300 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.5)]" style={{ width: `${percentage}%` }}></div>
                   </div>
-                  <p className="text-xs text-slate-500 mt-4 text-left">Processing file {progress.current} of {progress.total}</p>
+                  <p className="text-xs text-slate-500 mt-4 font-mono">Processing file {progress.current} of {progress.total}</p>
                 </div>
               )}
             </div>
@@ -349,61 +477,81 @@ const Optimizer = ({ token, user }) => {
 
           {/* Done State */}
           {status === 'done' && (
-            <div className="bg-dark-surface border border-dark-border rounded-2xl p-8 text-center min-h-[400px] flex flex-col items-center justify-center">
-              <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mb-6">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+            <div className="card p-8 md:p-10 text-center min-h-[400px] flex flex-col items-center justify-center animate-scale-in">
+              <div className="w-20 h-20 bg-brand-500/15 border border-brand-500/30 text-brand-400 rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(16,185,129,0.25)]">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Optimization Complete</h3>
-              <p className="text-slate-400 text-sm mb-6">Successfully compressed and cleaned your resource pack.</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-semibold uppercase tracking-wider mb-3">
+                Optimization Succeeded
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 tracking-tight">Pack Compressed &amp; Ready</h3>
+              <p className="text-slate-400 text-sm mb-7 max-w-md">All texture passes, JSON minifications, and asset consolidation completed successfully.</p>
               
               {/* Savings Banner */}
-              <div className="w-full max-w-md bg-dark-surface2 border border-dark-border rounded-xl p-4 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="text-xs text-slate-400 uppercase tracking-wider">Original Size</p>
-                    <p className="text-lg font-semibold text-slate-300">{formatSize(sizes.original)}</p>
+              <div className="w-full max-w-lg panel-inset p-5 mb-6">
+                <div className="grid grid-cols-2 gap-4 mb-4 text-left">
+                  <div className="p-3 rounded-xl bg-dark-surface2/60 border border-dark-border/60">
+                    <p className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Original Size</p>
+                    <p className="text-xl font-bold text-slate-300 font-mono mt-0.5">{formatSize(sizes.original)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-brand-400 uppercase tracking-wider font-bold">Optimized Size</p>
-                    <p className="text-xl font-bold text-white">{formatSize(sizes.final)}</p>
+                  <div className="p-3 rounded-xl bg-brand-500/10 border border-brand-500/25">
+                    <p className="text-[11px] text-brand-400 uppercase tracking-wider font-bold">Optimized Size</p>
+                    <p className="text-xl font-extrabold text-white font-mono mt-0.5">{formatSize(sizes.final)}</p>
                   </div>
                 </div>
                 {sizes.original > 0 && (
-                  <div className="w-full bg-dark-bg rounded-full h-2 overflow-hidden flex">
+                  <div className="w-full bg-dark-bg rounded-full h-2.5 overflow-hidden border border-dark-border p-0.5 mb-3">
                     <div 
-                      className="bg-brand-500 h-full transition-all duration-500" 
+                      className="bg-gradient-to-r from-brand-500 to-brand-300 h-full rounded-full transition-all duration-700 shadow-[0_0_10px_rgba(16,185,129,0.5)]" 
                       style={{ width: `${Math.max(5, Math.min(100, Math.round((sizes.final / sizes.original) * 100)))}%` }}
                     />
                   </div>
                 )}
-                <p className="text-xs text-emerald-400 font-semibold mt-2 text-center">
-                  Saved {formatSize(sizes.original > sizes.final ? sizes.original - sizes.final : 0)} ({sizes.original > 0 ? Math.round(((sizes.original - sizes.final) / sizes.original) * 100) : 0}% smaller)
-                </p>
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="text-slate-400">Total reduction</span>
+                  <span className="text-emerald-400 font-bold font-mono">
+                    -{formatSize(sizes.original > sizes.final ? sizes.original - sizes.final : 0)} ({sizes.original > 0 ? Math.round(((sizes.original - sizes.final) / sizes.original) * 100) : 0}% saved)
+                  </span>
+                </div>
               </div>
 
               {/* Audit Summary Breakdown */}
-              <div className="w-full max-w-md bg-dark-bg/60 border border-dark-border/60 rounded-xl p-4 mb-8 text-left space-y-2 text-xs">
-                <p className="font-bold text-slate-300 uppercase tracking-wider text-[10px] mb-2">Optimization Audit Summary</p>
+              <div className="w-full max-w-lg panel-inset p-4 mb-8 text-left space-y-2.5 text-xs">
+                <p className="font-bold text-slate-400 uppercase tracking-wider text-[10px]">Pipeline Execution Summary</p>
                 <div className="flex items-center justify-between text-slate-300">
-                  <span className="flex items-center gap-1.5">👯 Smart Asset Consolidation</span>
-                  <span className="text-emerald-400 font-medium">{options.deduplicate ? 'Active' : 'Disabled'}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    Smart Asset Consolidation
+                  </span>
+                  <span className="badge-brand text-[10px]">{options.deduplicate ? 'Active' : 'Disabled'}</span>
                 </div>
                 <div className="flex items-center justify-between text-slate-300">
-                  <span className="flex items-center gap-1.5">🗑️ Unused Cleaner & Shaders</span>
-                  <span className="text-emerald-400 font-medium">{options.unusedCleaner ? 'Active' : 'Skipped'}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                    Unused Textures &amp; Shaders
+                  </span>
+                  <span className="badge-neutral text-[10px]">{options.unusedCleaner ? 'Cleaned' : 'Skipped'}</span>
                 </div>
                 <div className="flex items-center justify-between text-slate-300">
-                  <span className="flex items-center gap-1.5">🗜️ PNG & JSON Minifier</span>
-                  <span className="text-emerald-400 font-medium">{options.compressOxipng ? 'Oxipng Presets' : 'Standard'}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                    PNG &amp; JSON Minifier
+                  </span>
+                  <span className="badge-brand text-[10px]">{options.compressOxipng ? `Oxipng Lvl ${options.oxipngLevel}` : 'Standard'}</span>
                 </div>
               </div>
 
-              <div className="flex gap-4 w-full max-w-sm">
-                <button onClick={resetState} className="flex-1 py-3 bg-dark-surface2 border border-dark-border hover:bg-dark-border active:scale-[0.98] text-white font-medium rounded-lg transition-all text-sm">
-                  Start New
+              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                <button onClick={resetState} className="btn-ghost flex-1 py-3 text-sm">
+                  Start New Pack
                 </button>
-                <button onClick={handleDownload} className="flex-1 py-3 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all text-sm">
-                  Download .zip
+                <button onClick={handleDownload} disabled={isDownloading} className="btn-primary flex-1 py-3 text-sm">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  {isDownloading ? 'Preparing download…' : 'Download .zip'}
                 </button>
               </div>
             </div>
@@ -411,13 +559,15 @@ const Optimizer = ({ token, user }) => {
           
           {/* Error State */}
           {status === 'error' && (
-            <div className="bg-dark-surface border border-dark-border rounded-2xl p-8 text-center min-h-[300px] flex flex-col items-center justify-center">
-              <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-6">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <div className="card p-8 md:p-10 text-center min-h-[300px] flex flex-col items-center justify-center animate-scale-in">
+              <div className="w-16 h-16 bg-red-500/10 border border-red-500/25 text-red-400 rounded-2xl flex items-center justify-center mb-5">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Process Failed</h3>
-              <p className="text-red-400 text-sm mb-6 max-w-sm">{errorMsg}</p>
-              <button onClick={resetState} className="px-6 py-2.5 bg-dark-surface2 border border-dark-border hover:bg-dark-border active:scale-[0.98] text-white font-medium rounded-lg transition-all text-sm">
+              <p className="text-red-400 text-sm mb-6 max-w-sm leading-relaxed">{errorMsg}</p>
+              <button onClick={resetState} className="btn-ghost">
                 Try Again
               </button>
             </div>

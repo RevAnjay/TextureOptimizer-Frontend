@@ -1,3 +1,4 @@
+import { API_URL, responseError, downloadTask } from '../lib/api';
 import { useState, useRef, useEffect } from 'react';
 
 export default function Converter({ token, user }) {
@@ -13,6 +14,8 @@ export default function Converter({ token, user }) {
   const [sizes, setSizes] = useState({ original: 0, final: 0 });
   const [errorMsg, setErrorMsg] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const downloadRef = useRef(null);
 
   const fileInputRef = useRef(null);
   const logsEndRef = useRef(null);
@@ -62,6 +65,10 @@ export default function Converter({ token, user }) {
   };
 
   const resetState = () => {
+    const download = downloadRef.current;
+    downloadRef.current = null;
+    download?.abort();
+    setIsDownloading(false);
     setStatus('idle');
     setTaskId(null);
     setErrorMsg(null);
@@ -82,7 +89,7 @@ export default function Converter({ token, user }) {
     formData.append('targetFormat', targetFormat);
 
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${import.meta.env.VITE_API_URL}/convert`);
+    xhr.open('POST', `${API_URL}/convert`);
     xhr.setRequestHeader('Authorization', `Bearer ${token}`);
 
     xhr.upload.onprogress = (e) => {
@@ -121,42 +128,60 @@ export default function Converter({ token, user }) {
     xhr.send(formData);
   };
 
-  // Polling status
+  // Only one authenticated status request is active at a time.
   useEffect(() => {
-    let interval;
-    if (status === 'processing' && taskId) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/status/${taskId}`);
-          if (!res.ok) throw new Error('Gagal mengambil status tugas');
-          const data = await res.json();
-          
-          if (data.error) throw new Error(data.error);
-          
-          setLogs(data.logs || []);
-          
-          if (data.status === 'done') {
-            setSizes({ original: data.original_size, final: data.final_size });
-            setStatus('done');
-            clearInterval(interval);
-          } else if (data.status === 'error') {
-            setStatus('error');
-            setErrorMsg(data.error_msg);
-            clearInterval(interval);
-          } else {
-            setProgress({
-              current: data.current,
-              total: data.total,
-              eta: data.eta
-            });
-          }
-        } catch (err) {
-          console.error("Polling error", err);
+    if (status !== 'processing' || !taskId) return;
+    let stopped = false;
+    let timer;
+    let request;
+    let failures = 0;
+    async function poll() {
+      request = new AbortController();
+      const timeout = setTimeout(() => request.abort(), 15000);
+      let finished = false;
+      let delay = 1000;
+      try {
+        const res = await fetch(`${API_URL}/status/${encodeURIComponent(taskId)}`, {
+          headers: { Authorization: `Bearer ${token}` }, signal: request.signal,
+        });
+        if (stopped) return;
+        if (!res.ok) {
+          finished = [401,403,404,410].includes(res.status);
+          throw new Error(await responseError(res, 'Could not retrieve this task.'));
         }
-      }, 1000);
+        const data = await res.json();
+        if (stopped) return;
+        if (data.error) { finished = true; throw new Error(data.error); }
+        failures = 0;
+        setErrorMsg(null);
+        setLogs(Array.isArray(data.logs) ? data.logs : []);
+        if (data.status === 'done') {
+          setSizes({ original: data.original_size, final: data.final_size });
+          setStatus('done');
+          finished = true;
+        } else if (data.status === 'error') {
+          setStatus('error');
+          setErrorMsg(data.error_msg || 'The task failed.');
+          finished = true;
+        } else {
+          setProgress({ current: data.current, total: data.total, eta: data.eta });
+        }
+      } catch (error) {
+        if (stopped) return;
+        if (finished) { setStatus('error'); setErrorMsg(error.message); }
+        else {
+          failures++;
+          delay = Math.min(15000, 1000 * 2 ** Math.min(failures,4));
+          setErrorMsg(`${error.name === 'AbortError' ? 'The status request timed out.' : error.message} Reconnecting automatically…`);
+        }
+      } finally {
+        clearTimeout(timeout);
+        if (!stopped && !finished) timer = setTimeout(poll,delay);
+      }
     }
-    return () => clearInterval(interval);
-  }, [status, taskId]);
+    poll();
+    return () => { stopped = true; clearTimeout(timer); request?.abort(); };
+  }, [status,taskId,token]);
 
   // Auto-scroll logs
   useEffect(() => {
@@ -165,8 +190,29 @@ export default function Converter({ token, user }) {
     }
   }, [logs]);
 
-  const handleDownload = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/download/${taskId}`;
+  useEffect(() => () => {
+    const download = downloadRef.current;
+    downloadRef.current = null;
+    download?.abort();
+  }, [token]);
+
+  const handleDownload = async () => {
+    if (!taskId || status !== 'done' || downloadRef.current) return;
+    const controller = new AbortController();
+    downloadRef.current = controller;
+    setIsDownloading(true);
+    setErrorMsg(null);
+    try {
+      const filename = `${(file?.name || 'resource_pack').replace(/\.zip$/i, '')}_converted.zip`;
+      await downloadTask(taskId, token, filename, controller.signal);
+    } catch (error) {
+      if (downloadRef.current === controller && error.name !== 'AbortError') setErrorMsg(error.message);
+    } finally {
+      if (downloadRef.current === controller) {
+        downloadRef.current = null;
+        setIsDownloading(false);
+      }
+    }
   };
 
   const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
@@ -184,7 +230,7 @@ export default function Converter({ token, user }) {
 
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white tracking-tight mb-2">Version converter</h2>
+        <h2 className="page-title mb-2">Version converter</h2>
         <p className="text-slate-400 text-sm">Convert legacy texture pack Custom Model Data to 1.21.4+ items format.</p>
       </div>
 
@@ -315,8 +361,8 @@ export default function Converter({ token, user }) {
                 <button onClick={resetState} className="flex-1 py-3 bg-dark-surface2 border border-dark-border hover:bg-dark-border active:scale-[0.98] text-white font-medium rounded-lg transition-all text-sm">
                   Start New
                 </button>
-                <button onClick={handleDownload} className="flex-1 py-3 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all text-sm">
-                  Download Pack
+                <button onClick={handleDownload} disabled={isDownloading} className="flex-1 py-3 bg-white hover:bg-slate-200 active:scale-[0.98] text-black font-semibold rounded-lg transition-all text-sm">
+                  {isDownloading ? 'Preparing download…' : 'Download Pack'}
                 </button>
               </div>
             </div>
