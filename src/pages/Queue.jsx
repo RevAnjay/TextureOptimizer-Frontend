@@ -1,6 +1,8 @@
 import { API_URL, responseError, downloadTask } from '../lib/api';
 import { ToolHeader } from '../components/PackWorkspace';
-import React, { useState, useEffect, useRef } from 'react';
+import InspectorReport from '../components/InspectorReport';
+import MultiVersionReport from '../components/MultiVersionReport';
+import { useState, useEffect, useRef } from 'react';
 
 const Queue = ({ token }) => {
   const [tasks, setTasks] = useState({});
@@ -83,7 +85,7 @@ const Queue = ({ token }) => {
   }, [tasks, expandedTask]);
 
   const taskEntries = Object.entries(taskToken === token ? tasks : {}).filter(
-    ([key, val]) => typeof val === 'object' && val !== null && val.status
+    ([, val]) => typeof val === 'object' && val !== null && val.status
   );
 
   // Stats
@@ -337,7 +339,7 @@ const Queue = ({ token }) => {
                     )}
 
                     {/* Task Details */}
-                    {task.status === 'done' && (
+                    {task.status === 'done' && !task.result && (
                       <div className="px-5 py-4 bg-dark-surface2/50 border-b border-dark-border">
                         <div className="grid grid-cols-3 gap-4">
                           <div>
@@ -358,7 +360,9 @@ const Queue = ({ token }) => {
                       </div>
                     )}
 
-                    {task.status === 'done' && <div className="px-5 py-4 border-b border-dark-border"><button type="button" className="btn-ghost text-xs" disabled={!!downloadingTask} onClick={() => download(taskId)}>{downloadingTask === taskId ? 'Preparing download…' : 'Download result'}</button></div>}
+                    {task.status === 'done' && !task.result && <div className="px-5 py-4 border-b border-dark-border"><button type="button" className="btn-ghost text-xs" disabled={!!downloadingTask} onClick={() => download(taskId)}>{downloadingTask === taskId ? 'Preparing download…' : 'Download result'}</button></div>}
+                    {task.status === 'done' && task.result && <div className="p-4"><InspectorReport report={task.result} /></div>}
+                    {task.status === 'done' && task.conversion_report?.kind === 'multiversion' && <div className="p-4"><MultiVersionReport report={task.conversion_report} /></div>}
                     {/* Logs Terminal */}
                     <div className="bg-dark-bg p-4 max-h-[250px] overflow-y-auto">
                       <div className="flex gap-1.5 mb-3 items-center">

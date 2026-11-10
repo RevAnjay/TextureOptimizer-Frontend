@@ -134,7 +134,7 @@ async function readJson(file, entry) {
   catch { throw new Error(`${entry.name} contains invalid JSON.`); }
 }
 
-export async function inspectJavaPack(file, { maxBytes = 30 * 1024 * 1024 } = {}) {
+export async function inspectJavaPack(file, { maxBytes = 40 * 1024 * 1024 } = {}) {
   if (!/\.zip$/i.test(file.name)) throw new Error('Choose a Java resource pack with a .zip extension.');
   if (!file.size) throw new Error('This ZIP is empty. Choose a resource pack with assets.');
   if (file.size > maxBytes) throw new Error(`Your upload limit is ${Math.round(maxBytes / 1024 / 1024)} MB. Choose a smaller pack.`);

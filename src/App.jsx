@@ -205,7 +205,7 @@ function App() {
   const pageMeta = {
     home: { title: 'Texture Optimizer', crumb: 'Workspace' },
     scanner: { title: 'Scan & Analyze', crumb: 'Tools' },
-    converter: { title: 'Version Converter', crumb: 'Tools' },
+    converter: { title: 'Multi-version pack', crumb: 'Tools' },
     bedrock: { title: 'Bedrock Converter', crumb: 'Tools' },
     queue: { title: 'Queue Monitor', crumb: 'Workspace' },
     admin: { title: 'Admin Panel', crumb: 'Manage' },
@@ -278,7 +278,7 @@ function App() {
             {currentPage === 'admin' ? (
               <Admin token={token} navigateTo={setCurrentPage} />
             ) : currentPage === 'scanner' ? (
-              <Scanner token={token} />
+              <Scanner token={token} user={user} />
             ) : currentPage === 'converter' ? (
               <Converter token={token} user={user} />
             ) : currentPage === 'bedrock' ? (

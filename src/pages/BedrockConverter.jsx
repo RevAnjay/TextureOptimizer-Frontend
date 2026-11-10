@@ -54,7 +54,7 @@ export default function BedrockConverter({ token, user }) {
   const { job, start, reset, download, downloading, downloadError, retryConnection } = useBedrockJob(token, user?.username);
   const busy = ['uploading', 'queued', 'processing'].includes(job.status);
   const hasJob = job.status !== 'idle';
-  const maxMB = user?.tier === 'premium' || user?.is_admin ? 100 : 30;
+  const maxMB = user?.tier === 'premium' || user?.is_admin ? 100 : 40;
   useEffect(() => () => { inspectionId.current++; }, []);
   useEffect(() => { if (followLogs && logsRef.current) logsRef.current.scrollTop = logsRef.current.scrollHeight; }, [job.logs, followLogs, activeTab]);
 

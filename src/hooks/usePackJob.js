@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { API_URL, responseError, downloadTask } from '../lib/api';
 import { jobStorageKey, readJob, saveJob, forgetJob, validTaskId } from '../lib/jobStorage';
 
-const emptyJob = () => ({ status: 'idle', taskId: null, logs: [], current: 0, total: 0, eta: 0, upload: 0, error: '', connectionError: '', report: null, restoring: false, restored: false, storageError: false });
+const emptyJob = () => ({ status: 'idle', taskId: null, logs: [], current: 0, total: 0, eta: 0, upload: 0, error: '', connectionError: '', report: null, optimizationReport: null, result: null, restoring: false, restored: false, storageError: false });
 
 function restoreJob(key) {
   const saved = readJob(key);
@@ -95,6 +95,8 @@ export default function usePackJob(token, username, kind) {
           eta: Math.max(0, Number(data.eta) || 0), queuePosition: data.queue_position,
           originalSize: data.original_size, finalSize: data.final_size,
           report: data.conversion_report || null,
+          optimizationReport: data.optimization_report || null,
+          result: data.result || null,
           error: data.status === 'error' ? (data.error_msg || data.error || 'Conversion failed. See the server log for details.') : '',
           connectionError: '', restoring: false,
         }));
@@ -160,7 +162,7 @@ export default function usePackJob(token, username, kind) {
     xhr.ontimeout = () => fail('The upload timed out. Check your connection and try again.');
     xhr.onabort = () => { if (uploadRef.current === xhr) uploadRef.current = null; };
     try {
-      xhr.open('POST', `${API_URL}/${kind === 'optimizer' ? 'upload' : 'convert'}`);
+      xhr.open('POST', `${API_URL}/${kind === 'optimizer' ? 'upload' : kind === 'inspector' ? 'scan' : 'convert'}`);
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.timeout = 5 * 60 * 1000;
       xhr.send(form);
@@ -194,7 +196,7 @@ export default function usePackJob(token, username, kind) {
     setDownloadError('');
     try {
       const name = kind === 'bedrock' ? `${job.packName || 'bedrock-pack'}_bedrock.zip`
-        : `${(job.fileName || 'resource_pack').replace(/\.zip$/i, '')}_${kind === 'optimizer' ? 'optimized' : 'converted'}.zip`;
+        : `${(job.fileName || 'resource_pack').replace(/\.zip$/i, '')}_${kind === 'optimizer' ? 'optimized' : kind === 'multiversion' ? 'multiversion' : 'converted'}.zip`;
       await downloadTask(taskId, token, name, controller.signal);
     } catch (error) {
       if (isCurrent() && error.name !== 'AbortError') setDownloadError(error.message);

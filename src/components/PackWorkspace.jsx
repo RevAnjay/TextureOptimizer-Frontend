@@ -49,7 +49,7 @@ export function JobNotice({ job, retryConnection }) {
   return <div role="status" className="job-notice"><ToolIcon name="check" className="w-4 h-4 shrink-0" /><span>{job.restoring ? 'Restoring your task. Checking the latest server status…' : job.restored ? 'Task restored. You’re viewing the latest server status.' : 'Task saved. You can reload or leave this page and return later.'}</span></div>;
 }
 
-export function JobPanel({ controller, action, onReset }) {
+export function JobPanel({ controller, action, onReset, downloadable = true }) {
   const { job, download, downloading, downloadError, reset } = controller;
   const uploading = job.status === 'uploading';
   const done = job.status === 'done';
@@ -68,8 +68,8 @@ export function JobPanel({ controller, action, onReset }) {
         {uploading && <button type="button" onClick={reset} className="text-xs text-slate-400 underline underline-offset-4 mt-5">Cancel upload</button>}
       </>}
       {done && <>
-        <div className="result-sizes"><div><span>Original</span><strong>{formatBytes(job.originalSize || job.fileSize)}</strong></div><div><span>Output</span><strong>{formatBytes(job.finalSize)}</strong></div>{action === 'Optimization' && <div><span>{reduction >= 0 ? 'Smaller by' : 'Larger by'}</span><strong>{Math.abs(reduction)}%</strong></div>}</div>
-        <button type="button" onClick={download} disabled={downloading} className="btn-primary mt-6 w-full"><ToolIcon name="download" className="w-4 h-4" />{downloading ? 'Preparing download…' : 'Download resource pack'}</button>
+        {downloadable && <div className="result-sizes"><div><span>Original</span><strong>{formatBytes(job.originalSize || job.fileSize)}</strong></div><div><span>Output</span><strong>{formatBytes(job.finalSize)}</strong></div>{action === 'Optimization' && <div><span>{reduction >= 0 ? 'Smaller by' : 'Larger by'}</span><strong>{Math.abs(reduction)}%</strong></div>}</div>}
+        {downloadable && <button type="button" onClick={download} disabled={downloading} className="btn-primary mt-6 w-full"><ToolIcon name="download" className="w-4 h-4" />{downloading ? 'Preparing download…' : 'Download resource pack'}</button>}
         <button type="button" onClick={onReset} className="text-xs text-slate-400 hover:text-white mt-4">Process another pack</button>
       </>}
       {failed && <><p role="alert" className="text-sm text-red-300 mt-5 leading-relaxed">{job.error}</p><button type="button" onClick={onReset} className="btn-ghost mt-6">Start a new task</button></>}

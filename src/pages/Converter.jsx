@@ -1,38 +1,42 @@
 import { useState } from 'react';
 import usePackJob from '../hooks/usePackJob';
 import { ToolHeader, PanelHeading, PackPicker, JobNotice, JobPanel, ActivityLog, ToolIcon } from '../components/PackWorkspace';
-
-const versions = [
-  ['46', '1.21.4'], ['42', '1.21.2–1.21.3'], ['34', '1.21–1.21.1'],
-  ['32', '1.20.5–1.20.6'], ['22', '1.20.3–1.20.4'], ['18', '1.20.2'], ['15', '1.20–1.20.1'],
-];
+import MultiVersionReport from '../components/MultiVersionReport';
+import { javaVersions, selectedVersions, rangePresets, formatVersion } from '../lib/packReports';
 
 export default function Converter({ token, user }) {
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
-  const [targetFormat, setTargetFormat] = useState('46');
-  const controller = usePackJob(token, user.username, 'version');
+  const [minVersion, setMin] = useState('1.20.2');
+  const [maxVersion, setMax] = useState('1.21.4');
+  const controller = usePackJob(token, user.username, 'multiversion');
   const { job, start, reset, retryConnection } = controller;
   const hasJob = job.status !== 'idle';
-  const maxMB = user.tier === 'premium' || user.is_admin ? 100 : 30;
+  const releases = selectedVersions(minVersion, maxVersion);
+  const maxMB = user.tier === 'premium' || user.is_admin ? 100 : 40;
   function newPack() { reset(); setFile(null); setError(''); }
 
   return <div className="tool-workspace">
-    <ToolHeader title="Version converter" description="Update a Java resource pack’s format and supported item definitions for another Java release." meta="JAVA → JAVA" />
+    <ToolHeader title="Multi-version pack" description="Build a Java pack with a version range and item overlays. Minecraft loads the matching assets from a single ZIP." meta="JAVA → JAVA" />
     <JobNotice job={job} retryConnection={retryConnection} />
     <div className="workspace-columns">
       <div className="space-y-5 min-w-0">
-        {hasJob ? <JobPanel controller={controller} action="Conversion" onReset={newPack} /> : <section className="card overflow-hidden">
+        {hasJob ? <JobPanel controller={controller} action="Pack build" onReset={newPack} /> : <section className="card overflow-hidden">
           <PanelHeading number="01" title="Source pack"><span className="text-xs text-slate-500">{maxMB} MB max</span></PanelHeading>
           <div className="p-5 sm:p-6"><PackPicker file={file} onChange={setFile} maxMB={maxMB} error={error} setError={setError} /></div>
-          <PanelHeading number="02" title="Target version" />
-          <div className="p-5 sm:p-6"><label htmlFor="target-version" className="text-sm text-slate-300">Minecraft Java Edition</label><select id="target-version" className="field mt-3" value={targetFormat} onChange={event => setTargetFormat(event.target.value)}>{versions.map(([value, label]) => <option key={value} value={value}>{label} · Pack format {value}</option>)}</select><p className="text-xs text-slate-500 leading-relaxed mt-3">Format 46 introduces item definitions in assets/minecraft/items/. Review the activity log for conversion details and unsupported features.</p>
-            <div className="workspace-action"><p>Your original ZIP stays unchanged.</p><button type="button" className="btn-primary" disabled={!file} onClick={() => start(file, { targetFormat })}>Convert pack <ToolIcon name="arrow" className="w-4 h-4" /></button></div>
+          <PanelHeading number="02" title="Version range" />
+          <div className="p-5 sm:p-6 space-y-5">
+            <div className="preset-list">{rangePresets.map(preset => <button type="button" key={preset.name} aria-pressed={minVersion === preset.min && maxVersion === preset.max} className={minVersion === preset.min && maxVersion === preset.max ? 'is-selected' : ''} onClick={() => { setMin(preset.min); setMax(preset.max); }}><span className="preset-radio" /><span><strong>{preset.name} · {preset.min} → {preset.max}</strong><span>{preset.description}</span></span></button>)}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{[['Oldest release', minVersion, setMin, 'min-version'], ['Newest release', maxVersion, setMax, 'max-version']].map(([label, value, set, id]) => <label key={id} htmlFor={id} className="text-xs text-slate-400 min-w-0">{label}<select id={id} className="field mt-2" value={value} onChange={event => set(event.target.value)}>{javaVersions.map(version => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label>)}</div>
+            {!releases.length ? <p role="alert" className="text-xs text-red-300">The oldest release must come before the newest release.</p> : <div className="range-summary"><span>{releases.length} release group{releases.length === 1 ? '' : 's'}</span><span>Formats {formatVersion(releases[0].format)} → {formatVersion(releases.at(-1).format)}</span></div>}
+            {releases.some(version => version.format[0] >= 75) && <p className="text-xs text-amber-200 leading-relaxed">1.21.11+ uses a separate item atlas. The builder adds sources for resolved item textures; overlay-only models, shaders and changed vanilla layouts need review.</p>}
+            <div className="workspace-action"><p>Source assets and authored overlay priority are preserved.</p><button type="button" className="btn-primary" disabled={!file || !releases.length} onClick={() => start(file, { conversionMode: 'multiversion', minVersion, maxVersion })}>Build multi-version pack <ToolIcon name="arrow" className="w-4 h-4" /></button></div>
           </div>
         </section>}
-        <p className="workspace-caption">Format conversion cannot guarantee every custom model or predicate behaves identically in a different release.</p>
+        <MultiVersionReport report={job.report} />
+        <p className="workspace-caption">Version declarations are not a compatibility guarantee. Test the output on the releases your players use.</p>
       </div>
-      <aside className="space-y-5 min-w-0"><ActivityLog logs={job.logs} hasJob={hasJob} /><section className="workspace-note"><h2>Staying on Java?</h2><p>This tool converts between Java pack formats. To create a Bedrock pack and Geyser mappings, use Java → Bedrock in the sidebar.</p><div className="note-file"><ToolIcon name="file" className="w-4 h-4" /><span>Output <strong>converted.zip</strong></span></div></section></aside>
+      <aside className="space-y-5 min-w-0"><section className="workspace-note"><h2>What gets adapted</h2><ul className="tool-checklist"><li>Version metadata for older and newer pack schemas.</li><li>Plain numeric CustomModelData item definitions, where a faithful bridge can be generated.</li><li>Item atlas sources for 1.21.11+ when referenced textures can be resolved.</li></ul><p className="mt-4">Shaders, complex item states, fonts and renamed vanilla assets may need authored overlays. The output report lists what needs attention.</p><div className="note-file"><ToolIcon name="file" className="w-4 h-4" /><span>Output <strong>*_multiversion.zip</strong></span></div></section><ActivityLog logs={job.logs} hasJob={hasJob} /></aside>
     </div>
   </div>;
 }

@@ -9,9 +9,12 @@ Built with **React 19**, **Vite 8**, and **Tailwind CSS 4**. Resource-pack proce
 - **Java → Bedrock conversion** with a downloadable resource pack, Geyser mappings, and conversion report.
 - **Local pack inspection** to check ZIP structure, metadata, asset counts, and potential compatibility issues before uploading.
 - **Texture optimization** with configurable compression, resizing, and cleanup options.
-- **Pack analysis** to identify large textures and inspect asset statistics.
-- **Java version conversion** for supported item-model and pack formats.
-- **Job monitoring** with progress, server logs, connection retries, and reload recovery for optimization, Java version conversion, and Bedrock conversion.
+- **Android profiles** for atlas planning, frame-aware sprite resizing, protected font/GUI layouts, and optional vanilla shaders.
+- **Animation cost controls** to disable interpolation or explicitly freeze animations, with a downloadable compatibility report.
+- **Local reload-log diagnosis** to distinguish shader compilation, atlas stitching, and memory errors without uploading the pasted log.
+- **Pack inspector** with searchable health findings, JSON/animation checks, model parent cycles, missing custom texture references, atlas estimates, version overlays, duplicate byte analysis, and JSON export.
+- **Multi-version packs** with version-selected CustomModelData overlays and compatibility metadata in a single Java ZIP.
+- **Job monitoring** with progress, server logs, connection retries, and reload recovery for optimization, inspection, multi-version builds, and Bedrock conversion.
 - **Account screens** for registration, email verification, sign-in, password recovery, and administration.
 
 ## Getting started
@@ -56,12 +59,34 @@ Restart the development server after changing environment variables. The backend
 | Command | Description |
 | --- | --- |
 | `npm run dev` | Start the development server with hot reload. |
-| `npm test` | Run the ZIP-inspection and API-helper tests. |
+| `npm test` | Run ZIP inspection, API, job-storage, and optimizer-profile checks. |
 | `npm run build` | Create the production build in `dist/`. |
 | `npm run preview` | Preview a production build locally. |
 | `npm run lint` | Run ESLint. |
 
+## Optimizing for Android launchers
+
+Open **Texture optimizer** and choose **Android compatible** or **Android · low memory**. The latter starts with a 2048 px atlas planning target and 64 px sprites. Both profiles remove pack shader overrides and disable animation interpolation; these changes can alter custom effects and transitions. Freezing animations is a separate opt-in option.
+
+These profiles resize individual animation frames, preserve timing/frame order, and protect font/GUI dimensions. Their frame-aware backend pass skips legacy resizing, duplicate merging and unused cleanup to preserve references. The result includes `optimization_report.json`, also displayed after completion and restored with the task after a page reload. Deploy the updated backend with this frontend to use these options and reports.
+
+Atlas sizes are estimates for uploaded sprites, excluding vanilla, mods, other active packs and exact renderer behavior. Smaller PNG/ZIP files alone do not reduce GPU texture memory or prove an FPS gain. Test the pack on the target Minecraft version, launcher and renderer. The log checker runs locally in the browser and does not upload or persist pasted logs.
+
 ## Using the converter
+
+### Multi-version Java packs
+
+Open **Multi-version pack**, upload a Java ZIP, and select the oldest and newest release. The default is **1.20.2–1.21.4**; the extended catalog runs through **26.3**. The builder creates matching item overlays, keeps authored overlays in their original priority order, and includes `conversion_report.json`.
+
+The automatic bridge handles plain numeric CustomModelData overrides. Modern-to-legacy range dispatch requires an authored base model and a matching plain fallback. Complex states, tints, special renderers, shader APIs, fonts and renamed vanilla layouts can require manual overlays. For 1.21.11+, the builder adds item atlas sources from resolved root item-model references; overlay-only graphs and custom atlas filters still need review. Selecting a range does not prove in-game compatibility. Review the report and test the releases your players use.
+
+Both the updated Rust backend and this frontend must be deployed. See [the compatibility implementation notes](PACK_COMPATIBILITY.md) for supported schemas, API fields and official format sources.
+
+### Pack inspector
+
+Inspector performs read-only analysis and retains results with the server task. Search or filter findings by severity, review texture and atlas estimates, inspect overlays and file categories, or export the retained report as JSON. Reloading reconnects to the inspection; previous reports are also accessible from **Tasks**. Duplicate byte totals are not a promise that those resource IDs can safely be deleted.
+
+### Java to Bedrock
 
 1. Sign in and open **Java → Bedrock**.
 2. Select or drop a Java resource-pack `.zip` containing `pack.mcmeta` and an `assets/` directory.
